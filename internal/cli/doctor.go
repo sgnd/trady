@@ -15,13 +15,13 @@ import (
 )
 
 type doctorData struct {
-	Home      string `json:"home"`
-	Store     string `json:"store"`
-	KeyMode   string `json:"key_mode,omitempty"`
-	FFmpeg    string `json:"ffmpeg,omitempty"`
-	FFprobe   string `json:"ffprobe,omitempty"`
-	Warnings  []string `json:"warnings,omitempty"`
-	OK        bool   `json:"ok"`
+	Home     string   `json:"home"`
+	Store    string   `json:"store"`
+	KeyMode  string   `json:"key_mode,omitempty"`
+	FFmpeg   string   `json:"ffmpeg,omitempty"`
+	FFprobe  string   `json:"ffprobe,omitempty"`
+	Warnings []string `json:"warnings,omitempty"`
+	OK       bool     `json:"ok"`
 }
 
 func (d doctorData) Text() string {

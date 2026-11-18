@@ -82,8 +82,8 @@ func projectCreate(ctx context.Context, args []string) int {
 }
 
 type projectListData struct {
-	Count    int                  `json:"count"`
-	Projects []inventory.Project  `json:"projects"`
+	Count    int                 `json:"count"`
+	Projects []inventory.Project `json:"projects"`
 }
 
 func (d projectListData) Text() string {

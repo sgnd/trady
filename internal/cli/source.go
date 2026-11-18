@@ -75,8 +75,8 @@ func sourceAdd(ctx context.Context, args []string) int {
 }
 
 type sourceListData struct {
-	Count   int                 `json:"count"`
-	Sources []inventory.Source  `json:"sources"`
+	Count   int                `json:"count"`
+	Sources []inventory.Source `json:"sources"`
 }
 
 func (d sourceListData) Text() string {

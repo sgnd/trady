@@ -34,8 +34,8 @@ func cmdMoment(args []string) int {
 }
 
 type momentListData struct {
-	Count   int                 `json:"count"`
-	Moments []inventory.Moment  `json:"moments"`
+	Count   int                `json:"count"`
+	Moments []inventory.Moment `json:"moments"`
 }
 
 func (d momentListData) Text() string {

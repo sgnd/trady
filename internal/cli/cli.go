@@ -82,7 +82,7 @@ JOBS         job list|get
 INVENTORY    list
 
 Sister architecture to komando. Agent-safe: set TRADY_AGENT=1; use -o json.
-`) + "\n")
+`)+"\n")
 }
 
 func mapErr(err error) error {
