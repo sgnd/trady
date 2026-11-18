@@ -1,0 +1,33 @@
+name: Suggest a feature
+description: A task you want trady to do for you or your AI agent
+labels: [enhancement]
+body:
+  - type: textarea
+    id: task
+    attributes:
+      label: What do you want to do?
+      description: The task, not the solution. For example "cut the loudest 30 seconds from a long recording".
+    validations:
+      required: true
+  - type: textarea
+    id: today
+    attributes:
+      label: How do you do it today?
+      description: The tools or commands you use now (ffmpeg by hand, an editor, a script, ...)
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: How could trady help?
+      description: Optional. A command you imagine, like `trady project run ep1 --scorer loudness`.
+  - type: checkboxes
+    id: rules
+    attributes:
+      label: Does it fit trady?
+      description: See [CONTRIBUTING.md](https://github.com/sgnd/trady/blob/main/CONTRIBUTING.md).
+      options:
+        - label: It is local-first media work (sources, projects, moments, clips, captions) on the user's machine
+          required: true
+        - label: It can work as a plain command, for a person and for an AI agent (no GUI required)
+          required: true
