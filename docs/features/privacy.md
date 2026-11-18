@@ -17,8 +17,11 @@ secrets stay on your machine.
 
 ## How this stays true
 
-A test (`cmd/trady/privacy_test.go`) fails when any network package gets
-into the binary. A future feature that needs the network, such as the
+A test (`cmd/trady/privacy_test.go`) checks the binary for macOS, Linux
+and Windows. It fails when a package that dials or speaks a network
+protocol gets in, or when any package imports `net`. One importer is
+allowed: on Windows, `golang.org/x/sys/windows` (used for hidden input)
+imports `net` for socket types and opens no connection. A future feature that needs the network, such as the
 paid cloud sync, must be opt-in and must change that test on purpose.
 
 ## What trady does not do
