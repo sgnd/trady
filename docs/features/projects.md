@@ -17,9 +17,10 @@ trady job list
 - **project** — links to a source; status lifecycle
 - **moment** — scored window (placeholders until local AI scoring)
 - **clip** — render result path / skip reason
+- **transcript** — timed text of a source, made locally (see [captions.md](captions.md))
 - **job** — long-running `project.run` tracking
 
 ## Honest scope
 
 `project run` selects evenly spaced placeholder moments and cuts with ffmpeg
-when installed. Full transcript + LLM scoring is not claimed as production-ready.
+when installed. With whisper.cpp and a model, it burns captions into each clip. Full transcript + LLM scoring is not claimed as production-ready.

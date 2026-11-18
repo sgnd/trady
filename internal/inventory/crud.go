@@ -79,7 +79,45 @@ func RemoveSource(ctx context.Context, idOrName string) error {
 	if err != nil {
 		return err
 	}
+	if t, err := GetTranscript(ctx, s.ID); err == nil {
+		if err := deleteID(ctx, t.ID); err != nil {
+			return err
+		}
+	}
 	return deleteID(ctx, s.ID)
+}
+
+// SaveTranscript stores the transcript of a source, replacing an older one.
+func SaveTranscript(ctx context.Context, sourceID, model string, segs []Segment) (Transcript, error) {
+	id := ""
+	if old, err := GetTranscript(ctx, sourceID); err == nil {
+		id = old.ID
+	} else {
+		var err error
+		if id, err = sealrow.NewID(); err != nil {
+			return Transcript{}, err
+		}
+	}
+	t := Transcript{ID: id, SourceID: sourceID, Model: model, Segments: segs, CreatedAt: time.Now().UTC()}
+	_, err := putJSON(ctx, TypeTranscript, id, t)
+	return t, err
+}
+
+// GetTranscript returns the transcript of a source.
+func GetTranscript(ctx context.Context, sourceID string) (Transcript, error) {
+	all, err := listJSON(ctx, TypeTranscript, func(b []byte) (Transcript, error) {
+		var t Transcript
+		return t, json.Unmarshal(b, &t)
+	})
+	if err != nil {
+		return Transcript{}, err
+	}
+	for _, t := range all {
+		if t.SourceID == sourceID {
+			return t, nil
+		}
+	}
+	return Transcript{}, sealdb.ErrNotFound
 }
 
 func CreateProject(ctx context.Context, name, sourceIDOrName string) (Project, error) {

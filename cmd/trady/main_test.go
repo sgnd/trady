@@ -153,6 +153,7 @@ func TestEndToEnd(t *testing.T) {
 	r.fail("USAGE", 2, "list", "extra")
 	r.fail("SECRET_IN_ARGS", 2, "secret", "set", "TOKEN", "the-value")
 	r.ok("source", "add", media, "--name=ep2")
+	r.fail("NO_TRANSCRIPT", 3, "source", "transcript", "ep2")
 }
 
 func TestShortPassphrase(t *testing.T) {

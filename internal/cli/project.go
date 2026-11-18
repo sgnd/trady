@@ -151,6 +151,8 @@ func projectRun(ctx context.Context, args []string) int {
 	job.Message = "rendering clips"
 	_ = inventory.SaveJob(ctx, job)
 
+	segs, captionNote := captionsFor(ctx, src, &job)
+
 	ffmpeg, _ := media.LookPath()
 	rendered := 0
 	for _, m := range moments {
@@ -166,7 +168,7 @@ func projectRun(ctx context.Context, args []string) int {
 			c.Path = ""
 		} else {
 			pctx, cancel := media.WithTimeout(ctx)
-			err := media.Cut(pctx, src.Path, m.StartSec, m.EndSec, clipPath)
+			err := media.Cut(pctx, src.Path, m.StartSec, m.EndSec, clipPath, media.SRT(segs, m.StartSec, m.EndSec))
 			cancel()
 			if err != nil {
 				c.Status = "failed"
@@ -197,9 +199,33 @@ func projectRun(ctx context.Context, args []string) int {
 		"moments":  len(moments),
 		"rendered": rendered,
 		"out_dir":  outDir,
+		"captions": captionNote,
 		"note":     "moments are evenly spaced placeholders until local AI scoring lands",
 	})
 	return 0
+}
+
+// captionsFor returns the source's transcript, making it first when
+// whisper.cpp and a model are on this machine. The note says what happened.
+func captionsFor(ctx context.Context, src inventory.Source, job *inventory.Job) ([]inventory.Segment, string) {
+	if t, err := inventory.GetTranscript(ctx, src.ID); err == nil {
+		return t.Segments, fmt.Sprintf("burned in from the saved transcript (%d segments)", len(t.Segments))
+	}
+	if media.WhisperPath() == "" || media.ModelPath() == "" {
+		return nil, "off: install whisper-cli and a model to burn in captions (see `trady doctor`)"
+	}
+	job.Message = "transcribing"
+	_ = inventory.SaveJob(ctx, *job)
+	tctx, cancel := media.WithTimeout(ctx)
+	defer cancel()
+	segs, model, err := media.Transcribe(tctx, src.Path)
+	if err != nil {
+		return nil, "off: transcription failed: " + err.Error()
+	}
+	if _, err := inventory.SaveTranscript(ctx, src.ID, model, segs); err != nil {
+		return nil, "off: could not save the transcript: " + err.Error()
+	}
+	return segs, fmt.Sprintf("burned in from a new transcript (%d segments)", len(segs))
 }
 
 func failJob(ctx context.Context, job inventory.Job, p inventory.Project, err error) int {

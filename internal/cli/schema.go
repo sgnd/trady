@@ -12,7 +12,7 @@ var schemas = map[string]string{
 	"guide":   "trady guide [install]",
 	"schema":  "trady schema [COMMAND]",
 	"secret":  "trady secret set|list|show|rm …",
-	"source":  "trady source add|list|rm …",
+	"source":  "trady source add|list|transcribe|transcript|rm …",
 	"project": "trady project create|list|get|status|run|rm …",
 	"moment":  "trady moment list PROJECT",
 	"clip":    "trady clip list|export PROJECT",

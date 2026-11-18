@@ -105,3 +105,35 @@ func TestJobs(t *testing.T) {
 		t.Fatalf("got %+v, %v", got, err)
 	}
 }
+
+func TestTranscript(t *testing.T) {
+	ctx := setup(t)
+	s, err := AddSource(ctx, "src", "/a.mp4", Source{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := GetTranscript(ctx, s.ID); !errors.Is(err, sealdb.ErrNotFound) {
+		t.Fatalf("want ErrNotFound, got %v", err)
+	}
+	first, err := SaveTranscript(ctx, s.ID, "m1", []Segment{{StartSec: 0, EndSec: 1, Text: "a"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, err := SaveTranscript(ctx, s.ID, "m2", []Segment{{StartSec: 0, EndSec: 2, Text: "b"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if first.ID != second.ID {
+		t.Fatal("saving again should replace, not add")
+	}
+	got, err := GetTranscript(ctx, s.ID)
+	if err != nil || got.Model != "m2" || got.Segments[0].Text != "b" {
+		t.Fatalf("got %+v, %v", got, err)
+	}
+	if err := RemoveSource(ctx, "src"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := GetTranscript(ctx, s.ID); !errors.Is(err, sealdb.ErrNotFound) {
+		t.Fatalf("transcript left after source rm: %v", err)
+	}
+}
