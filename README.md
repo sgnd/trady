@@ -24,20 +24,22 @@ CLI, your own bot) can both use:
 
 ## Install
 
-From source (until the first GitHub Release):
-
-```bash
-git clone https://github.com/sgnd/trady.git
-cd trady
-make build
-./bin/trady version
-./bin/trady doctor
-```
-
-When Releases exist:
+On macOS or Linux, open a terminal and paste:
 
 ```bash
 curl --proto '=https' --tlsv1.2 -fsSL https://raw.githubusercontent.com/sgnd/trady/main/install.sh | sh
+```
+
+It installs the newest release, and only when the download matches the
+release's `checksums.txt`. On Windows, download `trady_windows_amd64.zip`
+from [Releases](https://github.com/sgnd/trady/releases) and put
+`trady.exe` in a folder on your `PATH`.
+
+Check that it works:
+
+```bash
+trady version
+trady doctor
 ```
 
 Optional: put `ffmpeg` / `ffprobe` on your `PATH` so duration probe and

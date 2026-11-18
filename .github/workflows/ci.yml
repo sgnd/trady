@@ -6,6 +6,7 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+  workflow_call: # the release workflow runs these checks first
 
 # least privilege: CI only reads the code
 permissions:
@@ -27,6 +28,44 @@ jobs:
         env:
           TRADY_REQUIRE_FFMPEG: "1"
       - run: make build
+
+  transcribe:
+    name: Transcription (whisper.cpp)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      WHISPER_TAG: v1.9.5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg espeak-ng cmake
+      # the build and the tiny model (about 75 MB) are cached, so most runs download nothing
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/whisper
+          key: whisper-${{ env.WHISPER_TAG }}-tiny-${{ runner.os }}
+      - name: Build whisper.cpp and get the tiny model
+        run: |
+          if [ ! -x ~/whisper/whisper-cli ]; then
+            git clone --depth 1 --branch "$WHISPER_TAG" https://github.com/ggml-org/whisper.cpp.git /tmp/wcpp
+            cmake -S /tmp/wcpp -B /tmp/wcpp/build -DBUILD_SHARED_LIBS=OFF -DCMAKE_BUILD_TYPE=Release
+            cmake --build /tmp/wcpp/build -j --target whisper-cli
+            mkdir -p ~/whisper && cp /tmp/wcpp/build/bin/whisper-cli ~/whisper/
+            curl -fsSL -o ~/whisper/ggml-tiny.bin https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.bin
+          fi
+          echo "$HOME/whisper" >> "$GITHUB_PATH"
+      - name: Make a speech sample
+        run: |
+          espeak-ng -w /tmp/speech.wav "trady cuts a long recording into a short clip"
+          ffmpeg -y -f lavfi -i color=size=320x240:rate=25 -i /tmp/speech.wav -shortest -c:v libx264 -c:a aac /tmp/speech.mp4
+      - run: go test ./internal/media -run 'TestTranscribeReal|TestCutWithCaptions' -v
+        env:
+          TRADY_REQUIRE_WHISPER: "1"
+          TRADY_REQUIRE_FFMPEG: "1"
+          TRADY_TEST_SPEECH: /tmp/speech.mp4
+          TRADY_WHISPER_MODEL: /home/runner/whisper/ggml-tiny.bin
 
   cross:
     name: Build and vet (${{ matrix.goos }}/${{ matrix.goarch }})

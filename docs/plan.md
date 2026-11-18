@@ -33,23 +33,28 @@ clips, the way paid web clip tools do, without uploading anything.
 | 5 | Local moment scoring (replace the evenly spaced placeholders) | done: rule-based ranking of transcript windows |
 | 5a | Optional local language model to judge moments (for example a llama.cpp server on localhost) | open; waits on a check that it beats the rule-based ranking |
 | 6 | `secret` and vault: tests for set, list, show, rm; agent can never print a value | done |
-| 7 | Releases: goreleaser, checksums, `install.sh` against real Releases; first release is 0.0.1, CHANGELOG.md lists what it holds; `install.sh` checks a published checksum | open; every tag needs the owner's yes |
+| 7 | Releases: `make dist`, checksums, build provenance, `install.sh` checks the sha256; first release is 0.0.1, CHANGELOG.md lists what it holds | done except the tag; every tag needs the owner's yes |
+| 7a | Sign `checksums.txt` and notarize the macOS binaries, as komando does | open; needs signing secrets and a release environment in the repo settings, which only the owner can add |
 | 8 | Docs: features pages match every command; `trady schema` matches the code | done |
 | 9 | Local transcription (whisper.cpp or similar) for captions and for moment scoring | done for captions; moment scoring is milestone 5 |
-| 9a | Run whisper.cpp in CI with the tiny model, so transcription is tested end to end | open; CI would download about 75 MB per run, so it needs a cache |
+| 9a | Run whisper.cpp in CI with the tiny model, so transcription is tested end to end | done: CI job "Transcription (whisper.cpp)" builds a pinned whisper.cpp, caches it with the model, and transcribes espeak-ng speech |
 | 10 | Privacy guarantee: no network call by default; `trady doctor` shows which local models and tools are used | done |
 | 11 | Vertical reframe (9:16) with local face or speaker tracking | open |
 | 12 | Security audit with the `security-audit` skill; fix what it finds | done as a focused review: [docs/security/2026-11-18-review.md](security/2026-11-18-review.md) |
 | 12a | Full six-phase audit with the `security-audit` skill (separate agents, run files outside the repo) | open; the first review was partial to save usage |
-| 12b | Ask a person in their own window before `secret show --reveal`, as komando does, so an agent in a pseudo-terminal cannot pass as a person | open |
-| 12c | Check whether the macOS keychain key is readable in `/usr/bin/security` arguments; pass it without argv if so | open |
+| 12b | Ask a person in their own window before `secret show --reveal`, as komando does, so an agent in a pseudo-terminal cannot pass as a person | done for macOS and Linux (zenity) |
+| 12c | Check whether the macOS keychain key is readable in `/usr/bin/security` arguments; pass it without argv if so | done: the key goes on stdin to `security -i` |
+| 12d | The reveal window on Windows | open; Windows stops with `NEEDS_PERSON` for now |
 | 13 | Agent integration: `trady guide install`, an MCP server, and the skill, tested with a real agent | open |
 
 ## Paid plan
 
+Login, accounts, plans, billing and checkout are never built in trady.
+They come from `efolusi/sso` and `efolusi/pay`, marked "via sso/pay" below.
+
 | # | Milestone | Status |
 |---|---|---|
-| 1 | `efolusi/trady-cloud`: API, account, sync, billing, website, following komando-cloud | deferred: waits on CLI milestones 1 to 8 |
+| 1 | `efolusi/trady-cloud`: API, sync and website, following komando-cloud. Login and accounts via sso/pay (`efolusi/sso`); billing via sso/pay (`efolusi/pay`) | deferred: waits on CLI milestones 1 to 8 |
 | 2 | `efolusi/trady-apps`: Mac, iPhone, iPad app, following komando-apps | deferred: waits on CLI milestones 1 to 8 |
-| 3 | Pricing, licence checks and checkout for the apps and cloud | deferred: waits on Paid 1 and 2 |
+| 3 | Plans, licence checks and checkout for the apps and cloud: via sso/pay (`efolusi/sso`, `efolusi/pay`); never built in trady | deferred: waits on Paid 1 and 2 |
 | 4 | Cloud sync is end-to-end encrypted (the cloud never sees media or transcripts) and the cloud can be self-hosted | deferred: part of Paid 1 |
