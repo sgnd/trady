@@ -1,24 +1,26 @@
 # trady
 
+[![CI](https://github.com/sgnd/trady/actions/workflows/ci.yml/badge.svg)](https://github.com/sgnd/trady/actions/workflows/ci.yml)
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)](LICENSE)
-[![Go](https://img.shields.io/github/go-mod/go-version/sgnd/trady)](go.mod)
-[![Release](https://img.shields.io/github/v/release/sgnd/trady?include_prereleases&sort=semver)](https://github.com/sgnd/trady/releases)
 
-**Local-first CLI for short, captioned clips from long recordings. For you and your AI agent.**
+**One local command line that turns your long recordings into short captioned clips. For you and your AI agent.**
 
-Long files sit on disk. Editors and scripts each invent their own folders,
-metadata and secrets. trady keeps sources, projects, moments and clips
-behind one command that you and an AI agent (Claude Code, Codex, Cursor,
-Gemini CLI, your own bot) can both use.
+A long recording holds a few minutes worth sharing. Finding them, cutting
+them and adding captions usually means an editor, a web service that wants
+your upload, and your own scripts. trady does it on your machine, behind
+one command that you and an AI agent (Claude Code, Codex, Cursor, Gemini
+CLI, your own bot) can both use:
 
-- Everything stays on your machine. Records are encrypted (AES-256-GCM) in
-  `~/.trady`, and trady makes no network calls.
-- Secrets go in a vault. Agents set them from the environment and cannot
-  print them.
-- You get readable text; an agent gets JSON.
-- It is built like [komando](https://github.com/sgnd/komando): one static
-  Go binary (`CGO_ENABLED=0`), no prompts for agents, and `guide` and
-  `schema` commands for them.
+- It finds the moments from a local transcript and cuts them with ffmpeg.
+- Captions are burned in from speech that whisper.cpp turns into text on
+  your machine.
+- Nothing is uploaded. trady makes no network calls, and its records are
+  encrypted (AES-256-GCM) in `~/.trady`.
+- Secrets go in a vault. An AI agent sets them from the environment and
+  cannot print them.
+- Readable text for you, JSON for an agent.
+- One file to install: a static Go binary, built like
+  [komando](https://github.com/sgnd/komando).
 
 ## Install
 
