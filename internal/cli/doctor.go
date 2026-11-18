@@ -21,6 +21,7 @@ type doctorData struct {
 	FFmpeg  string `json:"ffmpeg,omitempty"`
 	FFprobe string `json:"ffprobe,omitempty"`
 
+	Network      string   `json:"network"`
 	Whisper      string   `json:"whisper,omitempty"`
 	WhisperModel string   `json:"whisper_model,omitempty"`
 	Warnings     []string `json:"warnings,omitempty"`
@@ -36,6 +37,7 @@ func (d doctorData) Text() string {
 	}
 	fmt.Fprintf(&b, "ffmpeg: %s\n", emptyDash(d.FFmpeg))
 	fmt.Fprintf(&b, "ffprobe: %s\n", emptyDash(d.FFprobe))
+	fmt.Fprintf(&b, "network: %s\n", d.Network)
 	fmt.Fprintf(&b, "whisper: %s\n", emptyDash(d.Whisper))
 	fmt.Fprintf(&b, "whisper model: %s\n", emptyDash(d.WhisperModel))
 	for _, w := range d.Warnings {
@@ -67,7 +69,7 @@ func cmdDoctor(args []string) int {
 	if err != nil {
 		return out.P.Fail(err)
 	}
-	d := doctorData{Home: dir, OK: true}
+	d := doctorData{Home: dir, OK: true, Network: networkNote}
 	ffmpeg, ffprobe := media.LookPath()
 	d.FFmpeg, d.FFprobe = ffmpeg, ffprobe
 	if ffmpeg == "" || ffprobe == "" {
@@ -104,3 +106,7 @@ func cmdDoctor(args []string) int {
 	out.P.Print(d)
 	return 0
 }
+
+// networkNote is what doctor says about the network. A test in cmd/trady
+// keeps network packages out of the binary, so this stays true.
+const networkNote = "none: trady makes no network calls; ffmpeg, ffprobe and whisper-cli run on local files"

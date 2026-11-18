@@ -28,6 +28,8 @@ The first release will be 0.0.1.
   windows on sentence edges, ranked locally by cue words, questions,
   numbers and speech pace. Without a transcript it uses evenly spaced
   placeholders; the `selection` field says which.
+- trady makes no network calls. `trady doctor` says so in a new `network`
+  field, and a test keeps network code out of the binary.
 - `trady doctor`, `trady guide`, `trady schema`, and `-o json` output with a
   stable envelope for AI agents.
 
