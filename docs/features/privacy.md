@@ -11,6 +11,7 @@ secrets stay on your machine.
 | `ffprobe`, `ffmpeg` | Read and cut local media files | trady gives them local paths only |
 | `whisper-cli` | Turns local audio into text with a local model file | None |
 | `/usr/bin/security` (macOS) | Keeps the store key in the keychain | None |
+| `osascript` (macOS), `zenity` (Linux) | Shows the window that asks before `secret show --reveal` | None |
 
 `trady doctor` shows each tool it found, the whisper model, and the
 `network` line.

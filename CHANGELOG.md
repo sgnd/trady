@@ -56,5 +56,11 @@ The first release will be 0.0.1.
   The installed skill comes from the binary.
 - Caption text drops `{ } < > \`, so words in a recording cannot restyle
   or hide captions.
+- `trady secret show --reveal` asks the person in a window of their own
+  (macOS, or Linux with zenity). An AI agent in a pseudo-terminal can no
+  longer pass as a person. Cancel gives `DECLINED`; no window gives
+  `NEEDS_PERSON`.
+- On macOS the store key reaches the keychain through `security -i` on
+  stdin, not as a command line argument.
 - Every command rejects unknown flags, flags without a value, and missing
   or extra arguments (`USAGE`, exit 2).

@@ -26,8 +26,17 @@ trady picks the first that applies when it creates the store:
 trady secret set openai --from-env OPENAI_API_KEY
 trady secret list
 trady secret show openai          # existence only
-trady secret show openai --reveal # person at TTY only
+trady secret show openai --reveal # asks the person in a window first
 trady secret rm openai
 ```
 
 Secret values are sealed again under HKDF label `trady vault entries v1`.
+
+`--reveal` asks the person at this computer in a window of their own (macOS,
+or Linux with `zenity` and a screen), because a terminal alone cannot tell a
+person from an AI agent. Cancel gives `DECLINED`; with no window to show
+(SSH, no screen, Windows, `TRADY_NO_DIALOG=1`) it stops with `NEEDS_PERSON`
+and the value stays hidden.
+
+On macOS the store key goes to the keychain through `security -i`, so it is
+never on a command line.

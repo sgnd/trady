@@ -3,23 +3,34 @@
 package store
 
 import (
-	"bytes"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
+	"io"
 	"os/exec"
 	"strings"
-	"time"
 )
+
+const securityTool = "/usr/bin/security"
 
 func keychainService() string {
 	h := sha256.Sum256([]byte(Path("")))
 	return "trady vault " + hex.EncodeToString(h[:6])
 }
 
+// runSecurity runs the security tool with stdin; tests replace it.
+var runSecurity = func(stdin string, args ...string) ([]byte, error) {
+	cmd := exec.Command(securityTool, args...)
+	if stdin != "" {
+		cmd.Stdin = strings.NewReader(stdin)
+	}
+	cmd.Stderr = io.Discard
+	return cmd.Output()
+}
+
 func keychainGet() ([]byte, error) {
-	cmd := exec.Command("/usr/bin/security", "find-generic-password", "-s", keychainService(), "-a", "trady", "-w")
-	out, err := cmd.Output()
+	out, err := runSecurity("", "find-generic-password", "-s", keychainService(), "-a", "trady", "-w")
 	if err != nil {
 		return nil, err
 	}
@@ -36,16 +47,10 @@ func keychainNewKey() ([]byte, bool) {
 	if _, err := rand.Read(key); err != nil {
 		return nil, false
 	}
-	hexKey := hex.EncodeToString(key)
-	ctxDone := make(chan struct{})
-	go func() {
-		time.Sleep(5 * time.Second)
-		close(ctxDone)
-	}()
-	cmd := exec.Command("/usr/bin/security", "add-generic-password", "-U", "-s", keychainService(), "-a", "trady", "-w", hexKey)
-	var stderr bytes.Buffer
-	cmd.Stderr = &stderr
-	if err := cmd.Run(); err != nil {
+	// `security -i` reads the command from stdin, so the key stays out of
+	// the process list.
+	line := fmt.Sprintf("add-generic-password -U -a trady -s %q -w %s\n", keychainService(), hex.EncodeToString(key))
+	if _, err := runSecurity(line, "-i"); err != nil {
 		return nil, false
 	}
 	return key, true

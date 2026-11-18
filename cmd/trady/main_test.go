@@ -47,7 +47,7 @@ const testSecret = "tok-0123456789-abcdef"
 func (r runner) run(args ...string) (envelope, int) {
 	r.t.Helper()
 	cmd := exec.Command(r.bin, append(args, "-o", "json")...)
-	cmd.Env = append(os.Environ(), "TRADY_HOME="+r.home, "TRADY_VAULT_PASS="+r.pass, "TRADY_AGENT=1", "TRADY_TEST_TOKEN="+testSecret, "TRADY_TEST_EMPTY=")
+	cmd.Env = append(os.Environ(), "TRADY_HOME="+r.home, "TRADY_VAULT_PASS="+r.pass, "TRADY_AGENT=1", "TRADY_NO_DIALOG=1", "TRADY_TEST_TOKEN="+testSecret, "TRADY_TEST_EMPTY=")
 	b, err := cmd.Output()
 	code := 0
 	var ee *exec.ExitError

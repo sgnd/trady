@@ -41,8 +41,9 @@ clips, the way paid web clip tools do, without uploading anything.
 | 11 | Vertical reframe (9:16) with local face or speaker tracking | open |
 | 12 | Security audit with the `security-audit` skill; fix what it finds | done as a focused review: [docs/security/2026-11-18-review.md](security/2026-11-18-review.md) |
 | 12a | Full six-phase audit with the `security-audit` skill (separate agents, run files outside the repo) | open; the first review was partial to save usage |
-| 12b | Ask a person in their own window before `secret show --reveal`, as komando does, so an agent in a pseudo-terminal cannot pass as a person | open |
-| 12c | Check whether the macOS keychain key is readable in `/usr/bin/security` arguments; pass it without argv if so | open |
+| 12b | Ask a person in their own window before `secret show --reveal`, as komando does, so an agent in a pseudo-terminal cannot pass as a person | done for macOS and Linux (zenity) |
+| 12c | Check whether the macOS keychain key is readable in `/usr/bin/security` arguments; pass it without argv if so | done: the key goes on stdin to `security -i` |
+| 12d | The reveal window on Windows | open; Windows stops with `NEEDS_PERSON` for now |
 | 13 | Agent integration: `trady guide install`, an MCP server, and the skill, tested with a real agent | open |
 
 ## Paid plan

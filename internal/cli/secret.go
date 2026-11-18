@@ -151,8 +151,14 @@ func secretShow(ctx context.Context, args []string) int {
 		out.P.Print(map[string]any{"name": name, "exists": true, "value": "[hidden]"})
 		return 0
 	}
-	if out.IsAgent() {
-		return out.P.Fail(out.NeedsPerson("secret show --reveal"))
+	// The terminal alone cannot tell a person from an AI agent in a
+	// pseudo-terminal, so the person says yes in a window of their own.
+	allowed, shown := askInWindow("Show the value of the trady secret \""+name+"\" in the terminal?", "Show value")
+	if !shown {
+		return out.P.Fail(out.NeedsPerson("secret show --reveal").WithHint("run it on a computer with a screen (macOS, or Linux with zenity); trady asks in a window there"))
+	}
+	if !allowed {
+		return out.P.Fail(out.Errf(out.ExitPolicy, "DECLINED", "the value stays hidden", "the person did not allow showing secret %q", name))
 	}
 	val, err := vault.Get(ctx, name)
 	if err != nil {
