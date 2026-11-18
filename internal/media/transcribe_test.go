@@ -99,3 +99,27 @@ func TestSRTDropsStyleTags(t *testing.T) {
 		t.Fatalf("caption lost its words: %q", got)
 	}
 }
+
+// TestTranscribeReal runs ffmpeg and whisper-cli on speech made by espeak-ng.
+// CI sets TRADY_REQUIRE_WHISPER=1 and TRADY_TEST_SPEECH to such a file;
+// elsewhere the test is skipped.
+func TestTranscribeReal(t *testing.T) {
+	speech := os.Getenv("TRADY_TEST_SPEECH")
+	if speech == "" || WhisperPath() == "" || ModelPath() == "" {
+		if os.Getenv("TRADY_REQUIRE_WHISPER") == "1" {
+			t.Fatal("whisper-cli, a model and TRADY_TEST_SPEECH are required here")
+		}
+		t.Skip("whisper-cli, a model or TRADY_TEST_SPEECH missing")
+	}
+	segs, model, err := Transcribe(context.Background(), speech)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var text strings.Builder
+	for _, s := range segs {
+		text.WriteString(strings.ToLower(s.Text) + " ")
+	}
+	if model == "" || !strings.Contains(text.String(), "clip") {
+		t.Fatalf("model %q, transcript %q: want the word clip", model, text.String())
+	}
+}
