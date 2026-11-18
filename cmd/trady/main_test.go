@@ -129,6 +129,13 @@ func TestEndToEnd(t *testing.T) {
 	r.ok("list")
 	r.ok("job", "list")
 
+	// running again replaces the moments instead of adding more
+	before := count(t, r.ok("moment", "list", "cuts"))
+	r.ok("project", "run", "cuts", "--out", filepath.Join(home, "out"))
+	if after := count(t, r.ok("moment", "list", "cuts")); after != before {
+		t.Fatalf("second run: %d moments, want %d", after, before)
+	}
+
 	// removing a project removes its moments and clips
 	r.ok("project", "rm", "cuts")
 	r.fail("NOT_FOUND", 3, "moment", "list", "cuts")
@@ -153,6 +160,7 @@ func TestEndToEnd(t *testing.T) {
 	r.fail("USAGE", 2, "list", "extra")
 	r.fail("SECRET_IN_ARGS", 2, "secret", "set", "TOKEN", "the-value")
 	r.ok("source", "add", media, "--name=ep2")
+	r.fail("NO_TRANSCRIPT", 3, "source", "transcript", "ep2")
 }
 
 func TestShortPassphrase(t *testing.T) {

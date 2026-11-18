@@ -76,7 +76,8 @@ func Probe(ctx context.Context, path string) (inventory.Source, error) {
 }
 
 // Cut extracts [start,end) seconds to outPath as MP4 (re-encode for reliability).
-func Cut(ctx context.Context, src string, start, end float64, outPath string) error {
+// When srt is not empty, the captions are burned into the picture.
+func Cut(ctx context.Context, src string, start, end float64, outPath, srt string) error {
 	ffmpeg, _ := LookPath()
 	if ffmpeg == "" {
 		return fmt.Errorf("ffmpeg not found in PATH")
@@ -87,21 +88,34 @@ func Cut(ctx context.Context, src string, start, end float64, outPath string) er
 	if err := os.MkdirAll(filepath.Dir(outPath), 0o755); err != nil {
 		return err
 	}
-	dur := end - start
+	absOut, err := filepath.Abs(outPath)
+	if err != nil {
+		return err
+	}
 	args := []string{
 		"-y", "-ss", fmt.Sprintf("%.3f", start), "-i", src,
-		"-t", fmt.Sprintf("%.3f", dur),
+		"-t", fmt.Sprintf("%.3f", end-start),
+	}
+	dir := ""
+	if srt != "" {
+		// ffmpeg filter arguments need escaping for most paths, so the
+		// captions file gets a plain name in its own folder instead.
+		dir, err = os.MkdirTemp("", "trady-captions-")
+		if err != nil {
+			return err
+		}
+		defer os.RemoveAll(dir)
+		if err := os.WriteFile(filepath.Join(dir, "captions.srt"), []byte(srt), 0o600); err != nil {
+			return err
+		}
+		args = append(args, "-vf", "subtitles=captions.srt:force_style='FontSize=18,Outline=2,MarginV=40'")
+	}
+	args = append(args,
 		"-c:v", "libx264", "-preset", "veryfast", "-crf", "23",
 		"-c:a", "aac", "-movflags", "+faststart",
-		outPath,
-	}
-	cmd := exec.CommandContext(ctx, ffmpeg, args...)
-	var errb bytes.Buffer
-	cmd.Stderr = &errb
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("ffmpeg: %w: %s", err, strings.TrimSpace(errb.String()))
-	}
-	return nil
+		absOut,
+	)
+	return run(ctx, dir, ffmpeg, args...)
 }
 
 // SuggestMoments builds evenly spaced placeholder moments when AI scoring is not available.

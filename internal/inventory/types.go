@@ -17,6 +17,8 @@ const (
 	TypeMoment  = "moment"
 	TypeClip    = "clip"
 	TypeJob     = "job"
+
+	TypeTranscript = "transcript"
 )
 
 type Source struct {
@@ -58,6 +60,22 @@ type Clip struct {
 	Path      string `json:"path,omitempty"`
 	Status    string `json:"status"` // pending|rendered|failed|skipped
 	Note      string `json:"note,omitempty"`
+}
+
+// Segment is one timed piece of a transcript.
+type Segment struct {
+	StartSec float64 `json:"start_sec"`
+	EndSec   float64 `json:"end_sec"`
+	Text     string  `json:"text"`
+}
+
+// Transcript is the timed text of a source, made locally by whisper.cpp.
+type Transcript struct {
+	ID        string    `json:"id"`
+	SourceID  string    `json:"source_id"`
+	Model     string    `json:"model"`
+	Segments  []Segment `json:"segments"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 type Job struct {

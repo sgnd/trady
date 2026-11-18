@@ -35,3 +35,8 @@ make test     # unit tests
 - It fits local media / clip work, or the shared foundation (store, secrets, output).
 - It works as a command for a person and for an AI agent: no prompt an agent can meet.
 - Prefer no new dependency; if needed, keep it small and permissively licensed (MIT/BSD/Apache). Pure Go (`CGO_ENABLED=0`).
+
+## Changelog
+
+A change people notice gets a line under `[Unreleased]` in
+[CHANGELOG.md](CHANGELOG.md), in the same pull request.

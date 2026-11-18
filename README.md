@@ -60,7 +60,7 @@ Agents: set `TRADY_AGENT=1`, prefer `-o json`, start with `trady guide`.
 |------|----------|
 | Meta | `version`, `doctor`, `guide`, `schema`, `list` |
 | Secrets | `secret set\|list\|show\|rm` |
-| Media | `source add\|list\|rm` |
+| Media | `source add\|list\|transcribe\|transcript\|rm` |
 | Projects | `project create\|list\|get\|status\|run\|rm` |
 | Results | `moment list`, `clip list\|export`, `job list\|get` |
 

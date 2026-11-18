@@ -15,13 +15,16 @@ import (
 )
 
 type doctorData struct {
-	Home     string   `json:"home"`
-	Store    string   `json:"store"`
-	KeyMode  string   `json:"key_mode,omitempty"`
-	FFmpeg   string   `json:"ffmpeg,omitempty"`
-	FFprobe  string   `json:"ffprobe,omitempty"`
-	Warnings []string `json:"warnings,omitempty"`
-	OK       bool     `json:"ok"`
+	Home    string `json:"home"`
+	Store   string `json:"store"`
+	KeyMode string `json:"key_mode,omitempty"`
+	FFmpeg  string `json:"ffmpeg,omitempty"`
+	FFprobe string `json:"ffprobe,omitempty"`
+
+	Whisper      string   `json:"whisper,omitempty"`
+	WhisperModel string   `json:"whisper_model,omitempty"`
+	Warnings     []string `json:"warnings,omitempty"`
+	OK           bool     `json:"ok"`
 }
 
 func (d doctorData) Text() string {
@@ -33,6 +36,8 @@ func (d doctorData) Text() string {
 	}
 	fmt.Fprintf(&b, "ffmpeg: %s\n", emptyDash(d.FFmpeg))
 	fmt.Fprintf(&b, "ffprobe: %s\n", emptyDash(d.FFprobe))
+	fmt.Fprintf(&b, "whisper: %s\n", emptyDash(d.Whisper))
+	fmt.Fprintf(&b, "whisper model: %s\n", emptyDash(d.WhisperModel))
 	for _, w := range d.Warnings {
 		fmt.Fprintf(&b, "warning: %s\n", w)
 	}
@@ -67,6 +72,10 @@ func cmdDoctor(args []string) int {
 	d.FFmpeg, d.FFprobe = ffmpeg, ffprobe
 	if ffmpeg == "" || ffprobe == "" {
 		d.Warnings = append(d.Warnings, "install ffmpeg (includes ffprobe) for probe and clip export")
+	}
+	d.Whisper, d.WhisperModel = media.WhisperPath(), media.ModelPath()
+	if d.Whisper == "" || d.WhisperModel == "" {
+		d.Warnings = append(d.Warnings, "install whisper-cli and a model for captions: see docs/features/captions.md")
 	}
 
 	path := store.Path(store.DBFile)

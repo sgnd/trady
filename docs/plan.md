@@ -29,12 +29,14 @@ clips, the way paid web clip tools do, without uploading anything.
 | 1 | End-to-end CLI test; name conflicts (`CONFLICT`, exit 8); empty lists are `[]`; `project rm` removes its moments and clips; weak vault key gives `KEY` (exit 6) | done |
 | 2 | Unit tests for `inventory`, `out`, `media` (moment placement) and `store` (key modes) | done |
 | 3 | Argument checks: reject extra arguments and unknown flags in every command | done |
-| 4 | Real clip export with ffmpeg: cut, captions burned in, test with a generated sample video in CI | open |
-| 5 | Local moment scoring (replace the evenly spaced placeholders) | open |
+| 4 | Real clip export with ffmpeg: cut, captions burned in, test with a generated sample video in CI | done |
+| 5 | Local moment scoring (replace the evenly spaced placeholders) | done: rule-based ranking of transcript windows |
+| 5a | Optional local language model to judge moments (for example a llama.cpp server on localhost) | open; waits on a check that it beats the rule-based ranking |
 | 6 | `secret` and vault: tests for set, list, show, rm; agent can never print a value | open |
-| 7 | Releases: goreleaser, checksums, `install.sh` against real Releases | open; tag and release need the owner's yes |
+| 7 | Releases: goreleaser, checksums, `install.sh` against real Releases; first release is 0.0.1, CHANGELOG.md lists what it holds | open; every tag needs the owner's yes |
 | 8 | Docs: features pages match every command; `trady schema` matches the code | open |
-| 9 | Local transcription (whisper.cpp or similar) for captions and for moment scoring | open; milestones 4 and 5 use it |
+| 9 | Local transcription (whisper.cpp or similar) for captions and for moment scoring | done for captions; moment scoring is milestone 5 |
+| 9a | Run whisper.cpp in CI with the tiny model, so transcription is tested end to end | open; CI would download about 75 MB per run, so it needs a cache |
 | 10 | Privacy guarantee: no network call by default; `trady doctor` shows which local models and tools are used | open |
 | 11 | Vertical reframe (9:16) with local face or speaker tracking | open |
 | 12 | Security audit with the `security-audit` skill; fix what it finds | open |
