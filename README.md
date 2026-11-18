@@ -38,7 +38,7 @@ curl --proto '=https' --tlsv1.2 -fsSL https://raw.githubusercontent.com/sgnd/tra
 ```
 
 Optional: put `ffmpeg` / `ffprobe` on your `PATH` so duration probe and
-clip export work. Without them, moments still save; clips stay `skipped`.
+clip export work, and `whisper-cli` with a model for captions. Without them, moments still save; clips stay `skipped`.
 
 More detail: [Install](docs/features/install.md).
 
@@ -58,24 +58,30 @@ Agents: set `TRADY_AGENT=1`, prefer `-o json`, start with `trady guide`.
 
 | Area | Commands |
 |------|----------|
-| Meta | `version`, `doctor`, `guide`, `schema`, `list` |
+| Meta | `version`, `doctor`, `guide [install]`, `schema`, `list` |
 | Secrets | `secret set\|list\|show\|rm` |
 | Media | `source add\|list\|transcribe\|transcript\|rm` |
 | Projects | `project create\|list\|get\|status\|run\|rm` |
-| Results | `moment list`, `clip list\|export`, `job list\|get` |
+| Results | `moment list`, `clip list`, `job list\|get` |
 
 ## Scope (honest)
 
-`project run` uses **placeholder moments** (even windows) then cuts with
-ffmpeg when available. Local AI scoring and word-level captions are not
-production-ready yet; the store and commands are ready to extend.
+With a transcript, `project run` ranks moments with simple local rules
+(cue words, questions, numbers, speech pace), not an AI judge. Without one
+it uses evenly spaced windows. Clips are cut with ffmpeg, and captions are
+burned in when whisper.cpp and a model are installed. Captions are one line
+per spoken segment, not word by word.
 
 ## Docs
 
 - [Features](docs/features/README.md)
+- [Install](docs/features/install.md)
 - [Store](docs/features/store.md)
 - [Projects](docs/features/projects.md)
+- [Captions](docs/features/captions.md)
+- [Privacy](docs/features/privacy.md)
 - [Output](docs/features/output.md)
+- [Changelog](CHANGELOG.md)
 
 ## License
 

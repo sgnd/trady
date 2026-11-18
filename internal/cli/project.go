@@ -15,14 +15,7 @@ import (
 
 func cmdProject(args []string) int {
 	if len(args) == 0 || hasHelp(args) {
-		out.P.Print(strings.TrimSpace(`
-usage: trady project create SOURCE [--name NAME]
-       trady project list
-       trady project get NAME|ID
-       trady project status NAME|ID
-       trady project run NAME|ID [--out DIR]
-       trady project rm NAME|ID
-`) + "\n")
+		out.P.Print(usage("project"))
 		return 0
 	}
 	ctx := context.Background()

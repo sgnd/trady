@@ -153,6 +153,7 @@ func TestEndToEnd(t *testing.T) {
 	r.ok("source", "rm", "ep1")
 	r.fail("NOT_FOUND", 3, "source", "rm", "ep1")
 	r.fail("USAGE", 2, "nosuchcommand")
+	r.fail("USAGE", 2, "clip", "export", "cuts")
 
 	// argument checks
 	r.fail("USAGE", 2, "source", "list", "extra")

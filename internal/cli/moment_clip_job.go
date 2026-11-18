@@ -11,7 +11,7 @@ import (
 
 func cmdMoment(args []string) int {
 	if len(args) == 0 || hasHelp(args) || args[0] != "list" {
-		out.P.Print("usage: trady moment list PROJECT")
+		out.P.Print(usage("moment"))
 		if len(args) > 0 && args[0] != "list" {
 			return out.P.Fail(out.Usage("unknown moment subcommand"))
 		}
@@ -57,12 +57,12 @@ func (d momentListData) Text() string {
 
 func cmdClip(args []string) int {
 	if len(args) == 0 || hasHelp(args) {
-		out.P.Print("usage: trady clip list PROJECT\n       trady clip export PROJECT  (alias: see paths from last project run)")
+		out.P.Print(usage("clip"))
 		return 0
 	}
 	ctx := context.Background()
 	switch args[0] {
-	case "list", "export":
+	case "list":
 		pos, _, ok := parse("clip "+args[0], args[1:], nil, "PROJECT")
 		if !ok {
 			return out.ExitUsage
@@ -109,7 +109,7 @@ func (d clipListData) Text() string {
 
 func cmdJob(args []string) int {
 	if len(args) == 0 || hasHelp(args) {
-		out.P.Print("usage: trady job list\n       trady job get ID")
+		out.P.Print(usage("job"))
 		return 0
 	}
 	ctx := context.Background()

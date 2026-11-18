@@ -77,7 +77,7 @@ START        version · doctor · guide · schema
 SECRETS      secret set|list|show|rm
 MEDIA        source add|list|transcribe|transcript|rm
 PROJECTS     project create|list|get|status|run|rm
-CLIPS        moment list · clip list|export
+CLIPS        moment list · clip list
 JOBS         job list|get
 INVENTORY    list
 
