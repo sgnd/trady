@@ -1,0 +1,204 @@
+package inventory
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"path/filepath"
+	"strings"
+	"time"
+
+	"github.com/sgnd/trady/internal/sealdb"
+	"github.com/sgnd/trady/internal/sealrow"
+)
+
+func decodeSource(b []byte) (Source, error) {
+	var s Source
+	return s, json.Unmarshal(b, &s)
+}
+func decodeProject(b []byte) (Project, error) {
+	var p Project
+	return p, json.Unmarshal(b, &p)
+}
+func decodeMoment(b []byte) (Moment, error) {
+	var m Moment
+	return m, json.Unmarshal(b, &m)
+}
+func decodeClip(b []byte) (Clip, error) {
+	var c Clip
+	return c, json.Unmarshal(b, &c)
+}
+func decodeJob(b []byte) (Job, error) {
+	var j Job
+	return j, json.Unmarshal(b, &j)
+}
+
+func AddSource(ctx context.Context, name, path string, probe Source) (Source, error) {
+	if name == "" {
+		name = strings.TrimSuffix(filepath.Base(path), filepath.Ext(path))
+	}
+	id, err := sealrow.NewID()
+	if err != nil {
+		return Source{}, err
+	}
+	s := Source{
+		ID: id, Name: name, Path: path,
+		DurationSec: probe.DurationSec, Width: probe.Width, Height: probe.Height,
+		Codec: probe.Codec, ProbeNote: probe.ProbeNote, AddedAt: time.Now().UTC(),
+	}
+	_, err = putJSON(ctx, TypeSource, id, s)
+	return s, err
+}
+
+func ListSources(ctx context.Context) ([]Source, error) {
+	return listJSON(ctx, TypeSource, decodeSource)
+}
+
+func GetSource(ctx context.Context, idOrName string) (Source, error) {
+	all, err := ListSources(ctx)
+	if err != nil {
+		return Source{}, err
+	}
+	for _, s := range all {
+		if s.ID == idOrName || s.Name == idOrName {
+			return s, nil
+		}
+	}
+	return Source{}, sealdb.ErrNotFound
+}
+
+func RemoveSource(ctx context.Context, idOrName string) error {
+	s, err := GetSource(ctx, idOrName)
+	if err != nil {
+		return err
+	}
+	return deleteID(ctx, s.ID)
+}
+
+func CreateProject(ctx context.Context, name, sourceIDOrName string) (Project, error) {
+	src, err := GetSource(ctx, sourceIDOrName)
+	if err != nil {
+		return Project{}, fmt.Errorf("source: %w", err)
+	}
+	if name == "" {
+		name = src.Name + "-project"
+	}
+	id, err := sealrow.NewID()
+	if err != nil {
+		return Project{}, err
+	}
+	now := time.Now().UTC()
+	p := Project{ID: id, Name: name, SourceID: src.ID, Status: "pending", CreatedAt: now, UpdatedAt: now}
+	_, err = putJSON(ctx, TypeProject, id, p)
+	return p, err
+}
+
+func ListProjects(ctx context.Context) ([]Project, error) {
+	return listJSON(ctx, TypeProject, decodeProject)
+}
+
+func GetProject(ctx context.Context, idOrName string) (Project, error) {
+	all, err := ListProjects(ctx)
+	if err != nil {
+		return Project{}, err
+	}
+	for _, p := range all {
+		if p.ID == idOrName || p.Name == idOrName {
+			return p, nil
+		}
+	}
+	return Project{}, sealdb.ErrNotFound
+}
+
+func SaveProject(ctx context.Context, p Project) error {
+	p.UpdatedAt = time.Now().UTC()
+	_, err := putJSON(ctx, TypeProject, p.ID, p)
+	return err
+}
+
+func RemoveProject(ctx context.Context, idOrName string) error {
+	p, err := GetProject(ctx, idOrName)
+	if err != nil {
+		return err
+	}
+	return deleteID(ctx, p.ID)
+}
+
+func AddMoment(ctx context.Context, m Moment) (Moment, error) {
+	id, err := sealrow.NewID()
+	if err != nil {
+		return Moment{}, err
+	}
+	m.ID = id
+	_, err = putJSON(ctx, TypeMoment, id, m)
+	return m, err
+}
+
+func ListMoments(ctx context.Context, projectID string) ([]Moment, error) {
+	all, err := listJSON(ctx, TypeMoment, decodeMoment)
+	if err != nil {
+		return nil, err
+	}
+	var out []Moment
+	for _, m := range all {
+		if projectID == "" || m.ProjectID == projectID {
+			out = append(out, m)
+		}
+	}
+	return out, nil
+}
+
+func AddClip(ctx context.Context, c Clip) (Clip, error) {
+	id, err := sealrow.NewID()
+	if err != nil {
+		return Clip{}, err
+	}
+	c.ID = id
+	_, err = putJSON(ctx, TypeClip, id, c)
+	return c, err
+}
+
+func ListClips(ctx context.Context, projectID string) ([]Clip, error) {
+	all, err := listJSON(ctx, TypeClip, decodeClip)
+	if err != nil {
+		return nil, err
+	}
+	var out []Clip
+	for _, c := range all {
+		if projectID == "" || c.ProjectID == projectID {
+			out = append(out, c)
+		}
+	}
+	return out, nil
+}
+
+func SaveClip(ctx context.Context, c Clip) error {
+	_, err := putJSON(ctx, TypeClip, c.ID, c)
+	return err
+}
+
+func AddJob(ctx context.Context, j Job) (Job, error) {
+	id, err := sealrow.NewID()
+	if err != nil {
+		return Job{}, err
+	}
+	j.ID = id
+	if j.StartedAt.IsZero() {
+		j.StartedAt = time.Now().UTC()
+	}
+	_, err = putJSON(ctx, TypeJob, id, j)
+	return j, err
+}
+
+func ListJobs(ctx context.Context) ([]Job, error) {
+	return listJSON(ctx, TypeJob, decodeJob)
+}
+
+func GetJob(ctx context.Context, id string) (Job, error) {
+	return getByID(ctx, id, decodeJob)
+}
+
+func SaveJob(ctx context.Context, j Job) error {
+	_, err := putJSON(ctx, TypeJob, j.ID, j)
+	return err
+}

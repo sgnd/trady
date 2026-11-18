@@ -1,0 +1,9 @@
+/bin/
+/bins/
+/dist/
+*.test
+*.out
+.trady/
+.DS_Store
+.idea/
+.vscode/
