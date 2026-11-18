@@ -99,7 +99,7 @@ func putJSON(ctx context.Context, typ, id string, v any) (string, error) {
 }
 
 func listJSON[T any](ctx context.Context, typ string, decode func([]byte) (T, error)) ([]T, error) {
-	var out []T
+	out := []T{}
 	err := withDB(ctx, false, func(db *sealdb.DB) error {
 		return db.View(ctx, func(tx *sealdb.Tx) error {
 			rows, err := tx.List(typ)
@@ -117,7 +117,7 @@ func listJSON[T any](ctx context.Context, typ string, decode func([]byte) (T, er
 		})
 	})
 	if errors.Is(err, store.ErrNoStore) {
-		return nil, nil
+		return []T{}, nil
 	}
 	return out, err
 }
