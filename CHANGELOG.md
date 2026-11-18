@@ -40,5 +40,9 @@ The first release will be 0.0.1.
 - Running `trady project run` again replaces the last run's moments and
   clips instead of adding more.
 - A vault passphrase shorter than 15 characters fails with `KEY` (exit 6).
+- `trady secret list` with no secrets gives `[]`, not `null`.
+- `trady secret set` hides a value typed at a terminal.
+- Secret names are 1 to 64 letters, digits, `_`, `-` or `.`; others fail
+  with `USAGE`.
 - Every command rejects unknown flags, flags without a value, and missing
   or extra arguments (`USAGE`, exit 2).

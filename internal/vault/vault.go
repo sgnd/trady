@@ -90,9 +90,24 @@ func openValue(aead cipher.AEAD, name string, nonce, data []byte) (string, error
 	return string(plain), nil
 }
 
+// ValidName is true for 1 to 64 letters, digits, '_', '-' or '.'.
+func ValidName(name string) bool {
+	if name == "" || len(name) > 64 {
+		return false
+	}
+	for _, r := range name {
+		ok := r == '_' || r == '-' || r == '.' ||
+			(r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9')
+		if !ok {
+			return false
+		}
+	}
+	return true
+}
+
 func Set(ctx context.Context, name, value string) error {
-	if name == "" || value == "" {
-		return errors.New("vault: name and value required")
+	if !ValidName(name) || value == "" {
+		return errors.New("vault: a valid name and a value are required")
 	}
 	db, aead, err := openDB(ctx, true)
 	if err != nil {

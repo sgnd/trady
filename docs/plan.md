@@ -32,7 +32,7 @@ clips, the way paid web clip tools do, without uploading anything.
 | 4 | Real clip export with ffmpeg: cut, captions burned in, test with a generated sample video in CI | done |
 | 5 | Local moment scoring (replace the evenly spaced placeholders) | done: rule-based ranking of transcript windows |
 | 5a | Optional local language model to judge moments (for example a llama.cpp server on localhost) | open; waits on a check that it beats the rule-based ranking |
-| 6 | `secret` and vault: tests for set, list, show, rm; agent can never print a value | open |
+| 6 | `secret` and vault: tests for set, list, show, rm; agent can never print a value | done |
 | 7 | Releases: goreleaser, checksums, `install.sh` against real Releases; first release is 0.0.1, CHANGELOG.md lists what it holds | open; every tag needs the owner's yes |
 | 8 | Docs: features pages match every command; `trady schema` matches the code | open |
 | 9 | Local transcription (whisper.cpp or similar) for captions and for moment scoring | done for captions; moment scoring is milestone 5 |

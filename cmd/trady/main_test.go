@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"os"
@@ -41,10 +42,12 @@ type runner struct {
 	pass string
 }
 
+const testSecret = "tok-0123456789-abcdef"
+
 func (r runner) run(args ...string) (envelope, int) {
 	r.t.Helper()
 	cmd := exec.Command(r.bin, append(args, "-o", "json")...)
-	cmd.Env = append(os.Environ(), "TRADY_HOME="+r.home, "TRADY_VAULT_PASS="+r.pass, "TRADY_AGENT=1")
+	cmd.Env = append(os.Environ(), "TRADY_HOME="+r.home, "TRADY_VAULT_PASS="+r.pass, "TRADY_AGENT=1", "TRADY_TEST_TOKEN="+testSecret, "TRADY_TEST_EMPTY=")
 	b, err := cmd.Output()
 	code := 0
 	var ee *exec.ExitError
@@ -52,6 +55,9 @@ func (r runner) run(args ...string) (envelope, int) {
 		code = ee.ExitCode()
 	} else if err != nil {
 		r.t.Fatalf("%v: %v", args, err)
+	}
+	if bytes.Contains(b, []byte(testSecret)) {
+		r.t.Fatalf("%v: output holds the secret value", args)
 	}
 	var e envelope
 	if err := json.Unmarshal(b, &e); err != nil {
@@ -174,4 +180,38 @@ func TestShortPassphrase(t *testing.T) {
 		t.Fatal(err)
 	}
 	r.fail("KEY", 6, "source", "add", media)
+}
+
+func TestSecrets(t *testing.T) {
+	if testing.Short() {
+		t.Skip("builds the binary")
+	}
+	r := runner{t: t, bin: buildBinary(t), home: t.TempDir(), pass: "a-test-passphrase-long-enough"}
+
+	e := r.ok("secret", "list")
+	var l struct {
+		Secrets []any `json:"secrets"`
+	}
+	if err := json.Unmarshal(e.Data, &l); err != nil || l.Secrets == nil {
+		t.Fatalf("secret list: want [], got %s", e.Data)
+	}
+
+	r.ok("secret", "set", "api", "--from-env", "TRADY_TEST_TOKEN")
+	r.ok("secret", "set", "api", "--from-env", "TRADY_TEST_TOKEN") // overwrite
+	if n := count(t, r.ok("secret", "list")); n != 1 {
+		t.Fatalf("secret list: want 1, got %d", n)
+	}
+	r.ok("secret", "show", "api")
+
+	// an agent can never print or type a value
+	r.fail("NEEDS_PERSON", 6, "secret", "show", "api", "--reveal")
+	r.fail("NEEDS_PERSON", 6, "secret", "set", "other")
+	r.fail("SECRET_IN_ARGS", 2, "secret", "set", "other", testSecret)
+
+	r.fail("USAGE", 2, "secret", "set", "other", "--from-env", "TRADY_TEST_EMPTY")
+	r.fail("USAGE", 2, "secret", "set", "bad name", "--from-env", "TRADY_TEST_TOKEN")
+	r.fail("SECRET_NOT_FOUND", 3, "secret", "show", "nope")
+
+	r.ok("secret", "rm", "api")
+	r.fail("SECRET_NOT_FOUND", 3, "secret", "rm", "api")
 }
