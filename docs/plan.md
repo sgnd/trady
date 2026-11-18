@@ -37,7 +37,7 @@ clips, the way paid web clip tools do, without uploading anything.
 | 8 | Docs: features pages match every command; `trady schema` matches the code | open |
 | 9 | Local transcription (whisper.cpp or similar) for captions and for moment scoring | done for captions; moment scoring is milestone 5 |
 | 9a | Run whisper.cpp in CI with the tiny model, so transcription is tested end to end | open; CI would download about 75 MB per run, so it needs a cache |
-| 10 | Privacy guarantee: no network call by default; `trady doctor` shows which local models and tools are used | open |
+| 10 | Privacy guarantee: no network call by default; `trady doctor` shows which local models and tools are used | done |
 | 11 | Vertical reframe (9:16) with local face or speaker tracking | open |
 | 12 | Security audit with the `security-audit` skill; fix what it finds | open |
 | 13 | Agent integration: `trady guide install`, an MCP server, and the skill, tested with a real agent | open |
