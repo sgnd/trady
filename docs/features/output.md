@@ -2,8 +2,8 @@
 
 Every command prints either:
 
-- **text** in a terminal (human tables / lines), or
-- **one JSON envelope** when stdout is not a TTY, or with `-o json` / `TRADY_OUTPUT=json`.
+- text in a terminal (tables and lines for people), or
+- one JSON envelope when stdout is not a TTY, or with `-o json` / `TRADY_OUTPUT=json`.
 
 ```json
 {

@@ -9,15 +9,16 @@
 Long files sit on disk. Editors and scripts each invent their own folders,
 metadata and secrets. trady keeps sources, projects, moments and clips
 behind one command that you and an AI agent (Claude Code, Codex, Cursor,
-Gemini CLI, your own bot) can both use:
+Gemini CLI, your own bot) can both use.
 
-- **Sources and projects stay on your machine.** State lives sealed in
-  `~/.trady` (e2ee). This is the runtime, not a thin client to a cloud API.
-- **Secrets stay in a vault.** Agents set them from the environment; they
-  do not print them.
-- **Readable text for you, JSON for an agent.**
-- **Same shape as [komando](https://github.com/sgnd/komando):** static Go
-  binary (`CGO_ENABLED=0`), agent-safe CLI, guide and schema for agents.
+- Everything stays on your machine. Records are encrypted (AES-256-GCM) in
+  `~/.trady`, and trady makes no network calls.
+- Secrets go in a vault. Agents set them from the environment and cannot
+  print them.
+- You get readable text; an agent gets JSON.
+- It is built like [komando](https://github.com/sgnd/komando): one static
+  Go binary (`CGO_ENABLED=0`), no prompts for agents, and `guide` and
+  `schema` commands for them.
 
 ## Install
 
@@ -64,7 +65,7 @@ Agents: set `TRADY_AGENT=1`, prefer `-o json`, start with `trady guide`.
 | Projects | `project create\|list\|get\|status\|run\|rm` |
 | Results | `moment list`, `clip list`, `job list\|get` |
 
-## Scope (honest)
+## Scope
 
 With a transcript, `project run` ranks moments with simple local rules
 (cue words, questions, numbers, speech pace), not an AI judge. Without one

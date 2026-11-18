@@ -49,6 +49,6 @@ func guideInstall() int {
 		return out.P.Fail(err)
 	}
 	out.P.Print(map[string]any{"installed": dst})
-	fmt.Fprintf(os.Stderr, "Installed Cursor skill to %s — restart the agent.\n", dst)
+	fmt.Fprintf(os.Stderr, "Installed the Cursor skill to %s. Restart the agent to load it.\n", dst)
 	return 0
 }

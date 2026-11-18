@@ -1,6 +1,6 @@
 # trady guide
 
-trady is a local-first CLI: long recordings → short captioned-clip workflow on your machine.
+trady cuts long recordings into short captioned clips, on your machine.
 State is sealed under `~/.trady` (override `TRADY_HOME`). It is not a thin client to trady.efolusi.com.
 
 ## For AI agents

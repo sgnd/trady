@@ -21,7 +21,8 @@ Until then, `install.sh` prints build-from-source instructions for `latest`.
 
 ## Dependencies
 
-- **Required:** none beyond the trady binary (pure Go, `CGO_ENABLED=0`).
-- **Optional:** `ffmpeg` / `ffprobe` on `PATH` for media probe and clip export.
-- **Optional:** `whisper-cli` and a model file for captions and moment
-  scoring. See [captions.md](captions.md).
+| Tool | Needed for |
+|---|---|
+| The trady binary | Everything; it is pure Go (`CGO_ENABLED=0`) and needs nothing else |
+| `ffmpeg`, `ffprobe` (optional) | Reading media and cutting clips |
+| `whisper-cli` and a model (optional) | Captions and moment scoring; see [captions.md](captions.md) |

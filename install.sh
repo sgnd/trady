@@ -41,7 +41,7 @@ fi
 
 ver=${TRADY_VERSION:-latest}
 if [ "$ver" = latest ]; then
-  echo "trady: no GitHub Release published yet (Phase 0). Build from source:" >&2
+  echo "trady: there is no GitHub Release yet. Build from source:" >&2
   echo "  git clone https://github.com/$REPO.git && cd trady && make build && ./bin/trady version" >&2
   exit 1
 fi

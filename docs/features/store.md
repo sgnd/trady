@@ -10,9 +10,13 @@ Data directory: `~/.trady` (override with `TRADY_HOME`), mode 0700.
 
 ## Key modes
 
-1. **passphrase** — `TRADY_VAULT_PASS` (≥15 chars) at first create; scrypt.
-2. **keychain** — macOS Keychain when available (`TRADY_KEYCHAIN=off` skips).
-3. **keyfile** — `store.key` (CI / fallback).
+trady picks the first that applies when it creates the store:
+
+| Mode | When | Notes |
+|---|---|---|
+| `passphrase` | `TRADY_VAULT_PASS` is set | At least 15 characters; the key comes from scrypt |
+| `keychain` | macOS, and `TRADY_KEYCHAIN` is not `off` | The key lives in the Keychain |
+| `keyfile` | Otherwise (CI, Linux, Windows) | The key lives in `store.key` |
 
 `trady doctor` prints `key_mode`.
 

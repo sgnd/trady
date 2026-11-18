@@ -13,14 +13,16 @@ trady job list
 
 ## Records (sealed)
 
-- **source** — local media path + ffprobe fields when available
-- **project** — links to a source; status lifecycle
-- **moment** — scored window of the source
-- **clip** — render result path / skip reason
-- **transcript** — timed text of a source, made locally (see [captions.md](captions.md))
-- **job** — long-running `project.run` tracking
+| Record | What it holds |
+|---|---|
+| `source` | Path of a local media file, plus duration and size when ffprobe is installed |
+| `project` | The source it cuts, and its status |
+| `moment` | One scored window of the source |
+| `clip` | The rendered file, or why it was skipped |
+| `transcript` | Timed text of a source, made locally (see [captions.md](captions.md)) |
+| `job` | Progress of one `project run` |
 
-## Honest scope
+## Scope
 
 With a transcript, `project run` scores moments locally: it builds 15 to 60
 second windows on sentence edges and ranks them by cue words, questions,
