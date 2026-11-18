@@ -93,6 +93,10 @@ func mapErr(err error) error {
 	switch {
 	case strings.Contains(s, "not found") || strings.Contains(s, "ErrNotFound") || s == "sealdb: record not found":
 		return out.Errf(out.ExitNotFound, "NOT_FOUND", "check the name; `trady list` shows what trady knows", "%v", err)
+	case strings.Contains(s, "already exists"):
+		return out.Errf(out.ExitConflict, "CONFLICT", "pick another --name, or remove the old one first", "%v", err)
+	case strings.Contains(s, "key problem"):
+		return out.Errf(out.ExitPolicy, "KEY", "fix the vault key; `trady doctor` checks this computer", "%v", err)
 	case strings.Contains(s, "locked"):
 		return out.Errf(out.ExitPolicy, "LOCKED", "set TRADY_VAULT_PASS or unlock the keychain", "%v", err)
 	default:

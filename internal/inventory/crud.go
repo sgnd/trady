@@ -3,6 +3,7 @@ package inventory
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -33,9 +34,15 @@ func decodeJob(b []byte) (Job, error) {
 	return j, json.Unmarshal(b, &j)
 }
 
+// ErrConflict means a source or project with that name already exists.
+var ErrConflict = errors.New("already exists")
+
 func AddSource(ctx context.Context, name, path string, probe Source) (Source, error) {
 	if name == "" {
 		name = strings.TrimSuffix(filepath.Base(path), filepath.Ext(path))
+	}
+	if _, err := GetSource(ctx, name); err == nil {
+		return Source{}, fmt.Errorf("source %q: %w", name, ErrConflict)
 	}
 	id, err := sealrow.NewID()
 	if err != nil {
@@ -83,6 +90,9 @@ func CreateProject(ctx context.Context, name, sourceIDOrName string) (Project, e
 	if name == "" {
 		name = src.Name + "-project"
 	}
+	if _, err := GetProject(ctx, name); err == nil {
+		return Project{}, fmt.Errorf("project %q: %w", name, ErrConflict)
+	}
 	id, err := sealrow.NewID()
 	if err != nil {
 		return Project{}, err
@@ -121,6 +131,25 @@ func RemoveProject(ctx context.Context, idOrName string) error {
 	if err != nil {
 		return err
 	}
+	// remove the project's moments and clips too, so none are left orphaned
+	moments, err := ListMoments(ctx, p.ID)
+	if err != nil {
+		return err
+	}
+	for _, m := range moments {
+		if err := deleteID(ctx, m.ID); err != nil {
+			return err
+		}
+	}
+	clips, err := ListClips(ctx, p.ID)
+	if err != nil {
+		return err
+	}
+	for _, c := range clips {
+		if err := deleteID(ctx, c.ID); err != nil {
+			return err
+		}
+	}
 	return deleteID(ctx, p.ID)
 }
 
@@ -139,7 +168,7 @@ func ListMoments(ctx context.Context, projectID string) ([]Moment, error) {
 	if err != nil {
 		return nil, err
 	}
-	var out []Moment
+	out := []Moment{}
 	for _, m := range all {
 		if projectID == "" || m.ProjectID == projectID {
 			out = append(out, m)
@@ -163,7 +192,7 @@ func ListClips(ctx context.Context, projectID string) ([]Clip, error) {
 	if err != nil {
 		return nil, err
 	}
-	var out []Clip
+	out := []Clip{}
 	for _, c := range all {
 		if projectID == "" || c.ProjectID == projectID {
 			out = append(out, c)
