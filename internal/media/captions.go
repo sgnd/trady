@@ -21,7 +21,7 @@ func SRT(segs []inventory.Segment, start, end float64) string {
 			continue
 		}
 		n++
-		fmt.Fprintf(&b, "%d\n%s --> %s\n%s\n\n", n, srtTime(from-start), srtTime(to-start), s.Text)
+		fmt.Fprintf(&b, "%d\n%s --> %s\n%s\n\n", n, srtTime(from-start), srtTime(to-start), plainCaption(s.Text))
 	}
 	return b.String()
 }
@@ -32,4 +32,17 @@ func srtTime(sec float64) string {
 	m := ms / 60000 % 60
 	s := ms / 1000 % 60
 	return fmt.Sprintf("%02d:%02d:%02d,%03d", h, m, s, ms%1000)
+}
+
+// plainCaption drops the characters libass reads as style tags ({\...} and
+// <font>), so words in a recording cannot restyle or hide the captions.
+func plainCaption(s string) string {
+	s = strings.Map(func(r rune) rune {
+		switch r {
+		case '{', '}', '<', '>', '\\':
+			return -1
+		}
+		return r
+	}, s)
+	return strings.TrimSpace(s)
 }

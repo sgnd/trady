@@ -51,5 +51,10 @@ The first release will be 0.0.1.
 - Docs, help text and comments: em dashes removed, bold list headers turned
   into tables or plain lists, and "e2ee" replaced by what the store does
   (AES-256-GCM on this machine).
+- `trady guide install` no longer reads `skills/trady/SKILL.md` from the
+  current folder, which let a repo plant instructions for your AI agent.
+  The installed skill comes from the binary.
+- Caption text drops `{ } < > \`, so words in a recording cannot restyle
+  or hide captions.
 - Every command rejects unknown flags, flags without a value, and missing
   or extra arguments (`USAGE`, exit 2).
