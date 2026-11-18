@@ -47,9 +47,12 @@ clips, the way paid web clip tools do, without uploading anything.
 
 ## Paid plan
 
+Login, accounts, plans, billing and checkout are never built in trady.
+They come from `efolusi/sso` and `efolusi/pay`, marked "via sso/pay" below.
+
 | # | Milestone | Status |
 |---|---|---|
-| 1 | `efolusi/trady-cloud`: API, account, sync, billing, website, following komando-cloud | deferred: waits on CLI milestones 1 to 8 |
+| 1 | `efolusi/trady-cloud`: API, sync and website, following komando-cloud. Login and accounts via sso/pay (`efolusi/sso`); billing via sso/pay (`efolusi/pay`) | deferred: waits on CLI milestones 1 to 8 |
 | 2 | `efolusi/trady-apps`: Mac, iPhone, iPad app, following komando-apps | deferred: waits on CLI milestones 1 to 8 |
-| 3 | Pricing, licence checks and checkout for the apps and cloud | deferred: waits on Paid 1 and 2 |
+| 3 | Plans, licence checks and checkout for the apps and cloud: via sso/pay (`efolusi/sso`, `efolusi/pay`); never built in trady | deferred: waits on Paid 1 and 2 |
 | 4 | Cloud sync is end-to-end encrypted (the cloud never sees media or transcripts) and the cloud can be self-hosted | deferred: part of Paid 1 |
