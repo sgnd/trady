@@ -58,7 +58,7 @@ func emptyDash(s string) string {
 
 func cmdDoctor(args []string) int {
 	if hasHelp(args) {
-		out.P.Print("usage: trady doctor\nChecks TRADY_HOME, sealed store, key mode, and ffmpeg/ffprobe.")
+		out.P.Print(usage("doctor") + "\nChecks TRADY_HOME, the sealed store, its key mode, ffmpeg, whisper-cli and the network rule.")
 		return 0
 	}
 	if _, _, ok := parse("doctor", args, nil); !ok {

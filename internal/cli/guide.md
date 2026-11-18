@@ -1,6 +1,6 @@
 # trady guide
 
-trady is a local-first CLI: long recordings → short captioned-clip workflow on your machine.
+trady cuts long recordings into short captioned clips, on your machine.
 State is sealed under `~/.trady` (override `TRADY_HOME`). It is not a thin client to trady.efolusi.com.
 
 ## For AI agents
@@ -16,14 +16,18 @@ State is sealed under `~/.trady` (override `TRADY_HOME`). It is not a thin clien
 ```bash
 trady source add ./episode.mp4 --name ep1
 trady project create ep1 --name ep1-cuts
+trady source transcribe ep1        # optional: needs ffmpeg, whisper-cli and a model
 trady project run ep1-cuts --out ./exports
 trady moment list ep1-cuts
 trady clip list ep1-cuts
 ```
 
-`project run` currently builds evenly spaced placeholder moments and cuts them with ffmpeg when installed. Local AI scoring is not production-ready yet.
+With a transcript, `project run` ranks moments with local rules and burns captions in. Without one it uses evenly spaced windows and no captions; the `selection` and `captions` fields say which. `trady doctor` shows which tools are installed.
+
+trady makes no network calls and downloads nothing. If a tool or model is missing, tell the human; do not install it yourself.
 
 ## Safety
 
 - Agent never sees vault values (`[hidden]`).
 - Destructive or reveal actions that need a person stop with `NEEDS_PERSON`.
+- `trady schema COMMAND` gives the exact usage lines.

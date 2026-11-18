@@ -14,7 +14,7 @@ import (
 
 func cmdSource(args []string) int {
 	if len(args) == 0 || hasHelp(args) {
-		out.P.Print("usage: trady source add PATH [--name NAME]\n       trady source list\n       trady source transcribe NAME|ID\n       trady source transcript NAME|ID\n       trady source rm NAME|ID")
+		out.P.Print(usage("source"))
 		return 0
 	}
 	ctx := context.Background()

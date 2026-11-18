@@ -18,12 +18,7 @@ import (
 
 func cmdSecret(args []string) int {
 	if len(args) == 0 || hasHelp(args) {
-		out.P.Print(strings.TrimSpace(`
-usage: trady secret set NAME [--from-env VAR]
-       trady secret list
-       trady secret show NAME [--reveal]
-       trady secret rm NAME
-`) + "\n")
+		out.P.Print(usage("secret"))
 		return 0
 	}
 	ctx := context.Background()

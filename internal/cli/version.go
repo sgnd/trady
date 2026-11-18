@@ -12,7 +12,7 @@ func (v versionData) Text() string { return "trady " + v.Version }
 
 func cmdVersion(args []string) int {
 	if hasHelp(args) {
-		out.P.Print("usage: trady version")
+		out.P.Print(usage("version"))
 		return 0
 	}
 	if _, _, ok := parse("version", args, nil); !ok {

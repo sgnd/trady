@@ -46,5 +46,10 @@ The first release will be 0.0.1.
 - `trady secret set` hides a value typed at a terminal.
 - Secret names are 1 to 64 letters, digits, `_`, `-` or `.`; others fail
   with `USAGE`.
+- `trady clip export` is gone: it only repeated `trady clip list`.
+- Help text and `trady schema` print the same usage lines, from one list.
+- Docs, help text and comments: em dashes removed, bold list headers turned
+  into tables or plain lists, and "e2ee" replaced by what the store does
+  (AES-256-GCM on this machine).
 - Every command rejects unknown flags, flags without a value, and missing
   or extra arguments (`USAGE`, exit 2).

@@ -70,18 +70,18 @@ func printRootHelp(w io.Writer) {
 	fmt.Fprint(w, strings.TrimSpace(`
 trady: local-first CLI for short captioned clips from long recordings
 
-State lives under ~/.trady (TRADY_HOME). Sealed store + vault (e2ee).
-Runtime is this CLI — not trady.efolusi.com.
+State lives under ~/.trady (TRADY_HOME), encrypted with AES-256-GCM.
+This CLI does the work itself; it is not a client for trady.efolusi.com.
 
 START        version · doctor · guide · schema
 SECRETS      secret set|list|show|rm
 MEDIA        source add|list|transcribe|transcript|rm
 PROJECTS     project create|list|get|status|run|rm
-CLIPS        moment list · clip list|export
+CLIPS        moment list · clip list
 JOBS         job list|get
 INVENTORY    list
 
-Sister architecture to komando. Agent-safe: set TRADY_AGENT=1; use -o json.
+Built like komando. AI agents: set TRADY_AGENT=1 and use -o json.
 `)+"\n")
 }
 

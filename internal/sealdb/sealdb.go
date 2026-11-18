@@ -1,5 +1,5 @@
 // Package sealdb is trady's local store: one file of sealed rows
-// (AES-256-GCM via sealrow). Pure Go — no cgo, no SQLite dependency.
+// (AES-256-GCM via sealrow). Pure Go: no cgo, no SQLite.
 package sealdb
 
 import (

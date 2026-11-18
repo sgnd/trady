@@ -1,4 +1,4 @@
-// Package inventory holds sealed media domain records (source, project, …).
+// Package inventory stores the sealed media records: sources, projects, moments, clips, transcripts and jobs.
 package inventory
 
 import (
