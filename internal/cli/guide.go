@@ -15,7 +15,13 @@ var guideMD string
 
 func cmdGuide(args []string) int {
 	if len(args) > 0 && args[0] == "install" {
+		if _, _, ok := parse("guide install", args[1:], nil); !ok {
+			return out.ExitUsage
+		}
 		return guideInstall()
+	}
+	if _, _, ok := parse("guide", args, nil); !ok {
+		return out.ExitUsage
 	}
 	out.P.Print(strings.TrimSpace(guideMD) + "\n")
 	return 0

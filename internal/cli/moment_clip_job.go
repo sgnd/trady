@@ -17,11 +17,12 @@ func cmdMoment(args []string) int {
 		}
 		return 0
 	}
-	if len(args) < 2 {
-		return out.P.Fail(out.Usage("moment list needs a PROJECT"))
+	pos, _, ok := parse("moment list", args[1:], nil, "PROJECT")
+	if !ok {
+		return out.ExitUsage
 	}
 	ctx := context.Background()
-	p, err := inventory.GetProject(ctx, args[1])
+	p, err := inventory.GetProject(ctx, pos[0])
 	if err != nil {
 		return out.P.Fail(mapErr(err))
 	}
@@ -62,10 +63,11 @@ func cmdClip(args []string) int {
 	ctx := context.Background()
 	switch args[0] {
 	case "list", "export":
-		if len(args) < 2 {
-			return out.P.Fail(out.Usage("clip %s needs a PROJECT", args[0]))
+		pos, _, ok := parse("clip "+args[0], args[1:], nil, "PROJECT")
+		if !ok {
+			return out.ExitUsage
 		}
-		p, err := inventory.GetProject(ctx, args[1])
+		p, err := inventory.GetProject(ctx, pos[0])
 		if err != nil {
 			return out.P.Fail(mapErr(err))
 		}
@@ -113,6 +115,9 @@ func cmdJob(args []string) int {
 	ctx := context.Background()
 	switch args[0] {
 	case "list":
+		if _, _, ok := parse("job list", args[1:], nil); !ok {
+			return out.ExitUsage
+		}
 		list, err := inventory.ListJobs(ctx)
 		if err != nil {
 			return out.P.Fail(mapErr(err))
@@ -120,10 +125,11 @@ func cmdJob(args []string) int {
 		out.P.Print(jobListData{Count: len(list), Jobs: list})
 		return 0
 	case "get":
-		if len(args) < 2 {
-			return out.P.Fail(out.Usage("job get needs ID"))
+		pos, _, ok := parse("job get", args[1:], nil, "ID")
+		if !ok {
+			return out.ExitUsage
 		}
-		j, err := inventory.GetJob(ctx, args[1])
+		j, err := inventory.GetJob(ctx, pos[0])
 		if err != nil {
 			return out.P.Fail(mapErr(err))
 		}
@@ -156,6 +162,9 @@ func (d jobListData) Text() string {
 }
 
 func cmdList(args []string) int {
+	if _, _, ok := parse("list", args, nil); !ok {
+		return out.ExitUsage
+	}
 	ctx := context.Background()
 	sources, err := inventory.ListSources(ctx)
 	if err != nil {

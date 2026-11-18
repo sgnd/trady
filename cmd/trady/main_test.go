@@ -140,6 +140,19 @@ func TestEndToEnd(t *testing.T) {
 	r.ok("source", "rm", "ep1")
 	r.fail("NOT_FOUND", 3, "source", "rm", "ep1")
 	r.fail("USAGE", 2, "nosuchcommand")
+
+	// argument checks
+	r.fail("USAGE", 2, "source", "list", "extra")
+	r.fail("USAGE", 2, "source", "add")
+	r.fail("USAGE", 2, "source", "add", media, "another")
+	r.fail("USAGE", 2, "source", "add", media, "--name")
+	r.fail("USAGE", 2, "source", "add", media, "--bogus")
+	r.fail("USAGE", 2, "project", "get", "a", "b")
+	r.fail("USAGE", 2, "version", "extra")
+	r.fail("USAGE", 2, "doctor", "--bogus")
+	r.fail("USAGE", 2, "list", "extra")
+	r.fail("SECRET_IN_ARGS", 2, "secret", "set", "TOKEN", "the-value")
+	r.ok("source", "add", media, "--name=ep2")
 }
 
 func TestShortPassphrase(t *testing.T) {

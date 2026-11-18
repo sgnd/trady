@@ -22,15 +22,19 @@ func cmdSource(args []string) int {
 	case "add":
 		return sourceAdd(ctx, args[1:])
 	case "list":
+		if _, _, ok := parse("source list", args[1:], nil); !ok {
+			return out.ExitUsage
+		}
 		return sourceList(ctx)
 	case "rm", "remove":
-		if len(args) < 2 {
-			return out.P.Fail(out.Usage("source rm needs NAME or ID"))
+		pos, _, ok := parse("source rm", args[1:], nil, "NAME|ID")
+		if !ok {
+			return out.ExitUsage
 		}
-		if err := inventory.RemoveSource(ctx, args[1]); err != nil {
+		if err := inventory.RemoveSource(ctx, pos[0]); err != nil {
 			return out.P.Fail(mapErr(err))
 		}
-		out.P.Print(map[string]any{"removed": args[1]})
+		out.P.Print(map[string]any{"removed": pos[0]})
 		return 0
 	default:
 		return out.P.Fail(out.Usage("unknown source subcommand %q", args[0]))
@@ -38,21 +42,11 @@ func cmdSource(args []string) int {
 }
 
 func sourceAdd(ctx context.Context, args []string) int {
-	var path, name string
-	for i := 0; i < len(args); i++ {
-		if args[i] == "--name" && i+1 < len(args) {
-			name = args[i+1]
-			i++
-			continue
-		}
-		if strings.HasPrefix(args[i], "-") {
-			return out.P.Fail(out.Usage("unknown flag %s", args[i]))
-		}
-		path = args[i]
+	pos, vals, ok := parse("source add", args, map[string]bool{"--name": true}, "PATH")
+	if !ok {
+		return out.ExitUsage
 	}
-	if path == "" {
-		return out.P.Fail(out.Usage("source add needs a PATH"))
-	}
+	path, name := pos[0], vals["--name"]
 	abs, err := filepath.Abs(path)
 	if err != nil {
 		return out.P.Fail(err)

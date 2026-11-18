@@ -30,12 +30,16 @@ usage: trady project create SOURCE [--name NAME]
 	case "create":
 		return projectCreate(ctx, args[1:])
 	case "list":
+		if _, _, ok := parse("project list", args[1:], nil); !ok {
+			return out.ExitUsage
+		}
 		return projectList(ctx)
 	case "get", "status":
-		if len(args) < 2 {
-			return out.P.Fail(out.Usage("project %s needs NAME or ID", args[0]))
+		pos, _, ok := parse("project "+args[0], args[1:], nil, "NAME|ID")
+		if !ok {
+			return out.ExitUsage
 		}
-		p, err := inventory.GetProject(ctx, args[1])
+		p, err := inventory.GetProject(ctx, pos[0])
 		if err != nil {
 			return out.P.Fail(mapErr(err))
 		}
@@ -44,13 +48,14 @@ usage: trady project create SOURCE [--name NAME]
 	case "run":
 		return projectRun(ctx, args[1:])
 	case "rm", "remove":
-		if len(args) < 2 {
-			return out.P.Fail(out.Usage("project rm needs NAME or ID"))
+		pos, _, ok := parse("project rm", args[1:], nil, "NAME|ID")
+		if !ok {
+			return out.ExitUsage
 		}
-		if err := inventory.RemoveProject(ctx, args[1]); err != nil {
+		if err := inventory.RemoveProject(ctx, pos[0]); err != nil {
 			return out.P.Fail(mapErr(err))
 		}
-		out.P.Print(map[string]any{"removed": args[1]})
+		out.P.Print(map[string]any{"removed": pos[0]})
 		return 0
 	default:
 		return out.P.Fail(out.Usage("unknown project subcommand %q", args[0]))
@@ -58,21 +63,11 @@ usage: trady project create SOURCE [--name NAME]
 }
 
 func projectCreate(ctx context.Context, args []string) int {
-	var source, name string
-	for i := 0; i < len(args); i++ {
-		if args[i] == "--name" && i+1 < len(args) {
-			name = args[i+1]
-			i++
-			continue
-		}
-		if strings.HasPrefix(args[i], "-") {
-			return out.P.Fail(out.Usage("unknown flag %s", args[i]))
-		}
-		source = args[i]
+	pos, vals, ok := parse("project create", args, map[string]bool{"--name": true}, "SOURCE")
+	if !ok {
+		return out.ExitUsage
 	}
-	if source == "" {
-		return out.P.Fail(out.Usage("project create needs a SOURCE name or id"))
-	}
+	source, name := pos[0], vals["--name"]
 	p, err := inventory.CreateProject(ctx, name, source)
 	if err != nil {
 		return out.P.Fail(mapErr(err))
@@ -116,21 +111,11 @@ func projectList(ctx context.Context) int {
 }
 
 func projectRun(ctx context.Context, args []string) int {
-	var idOrName, outDir string
-	for i := 0; i < len(args); i++ {
-		if args[i] == "--out" && i+1 < len(args) {
-			outDir = args[i+1]
-			i++
-			continue
-		}
-		if strings.HasPrefix(args[i], "-") {
-			return out.P.Fail(out.Usage("unknown flag %s", args[i]))
-		}
-		idOrName = args[i]
+	pos, vals, ok := parse("project run", args, map[string]bool{"--out": true}, "NAME|ID")
+	if !ok {
+		return out.ExitUsage
 	}
-	if idOrName == "" {
-		return out.P.Fail(out.Usage("project run needs NAME or ID"))
-	}
+	idOrName, outDir := pos[0], vals["--out"]
 	p, err := inventory.GetProject(ctx, idOrName)
 	if err != nil {
 		return out.P.Fail(mapErr(err))

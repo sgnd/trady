@@ -22,12 +22,11 @@ var schemas = map[string]string{
 
 func cmdSchema(args []string) int {
 	if len(args) == 0 {
-		var names []string
-		for k := range schemas {
-			names = append(names, k)
-		}
 		out.P.Print(map[string]any{"commands": schemas})
 		return 0
+	}
+	if len(args) > 1 {
+		return out.P.Fail(out.Usage("schema: unexpected argument %q", args[1]))
 	}
 	s, ok := schemas[args[0]]
 	if !ok {

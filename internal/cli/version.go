@@ -15,6 +15,9 @@ func cmdVersion(args []string) int {
 		out.P.Print("usage: trady version")
 		return 0
 	}
+	if _, _, ok := parse("version", args, nil); !ok {
+		return out.ExitUsage
+	}
 	out.P.Print(versionData{Version: Version})
 	return 0
 }
