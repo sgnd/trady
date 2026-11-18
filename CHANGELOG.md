@@ -30,6 +30,10 @@ The first release will be 0.0.1.
   placeholders; the `selection` field says which.
 - trady makes no network calls. `trady doctor` says so in a new `network`
   field, and a test keeps network code out of the binary.
+- Releases: `make dist` builds an archive per platform and
+  `checksums.txt`; a `v*` tag runs every check, then publishes them with
+  build provenance. `install.sh` installs the newest release and checks its
+  sha256 first.
 - `trady doctor`, `trady guide`, `trady schema`, and `-o json` output with a
   stable envelope for AI agents.
 
