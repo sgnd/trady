@@ -155,7 +155,8 @@ func secretShow(ctx context.Context, args []string) int {
 	// pseudo-terminal, so the person says yes in a window of their own.
 	allowed, shown := askInWindow("Show the value of the trady secret \""+name+"\" in the terminal?", "Show value")
 	if !shown {
-		return out.P.Fail(out.NeedsPerson("secret show --reveal").WithHint("run it on a computer with a screen (macOS, or Linux with zenity); trady asks in a window there"))
+		return out.P.Fail(out.Errf(out.ExitPolicy, "NEEDS_PERSON", "run it on a computer with a screen (macOS, or Linux with zenity); trady asks in a window there",
+			"secret show --reveal needs a person to say yes in a window, and none can be shown here"))
 	}
 	if !allowed {
 		return out.P.Fail(out.Errf(out.ExitPolicy, "DECLINED", "the value stays hidden", "the person did not allow showing secret %q", name))
