@@ -34,7 +34,7 @@ clips, the way paid web clip tools do, without uploading anything.
 | 5a | Optional local language model to judge moments (for example a llama.cpp server on localhost) | open; waits on a check that it beats the rule-based ranking |
 | 6 | `secret` and vault: tests for set, list, show, rm; agent can never print a value | done |
 | 7 | Releases: `make dist`, checksums, build provenance, `install.sh` checks the sha256; first release is 0.0.1, CHANGELOG.md lists what it holds | done except the tag; every tag needs the owner's yes |
-| 7a | Sign `checksums.txt` and notarize the macOS binaries, as komando does | open; needs signing secrets and a release environment in the repo settings, which only the owner can add |
+| 7a | Sign `checksums.txt` and notarize the macOS binaries, as komando does | deferred: waits on the owner (signing secrets and a release environment in the repo settings); not needed before v0.0.1 |
 | 8 | Docs: features pages match every command; `trady schema` matches the code | done |
 | 9 | Local transcription (whisper.cpp or similar) for captions and for moment scoring | done for captions; moment scoring is milestone 5 |
 | 9a | Run whisper.cpp in CI with the tiny model, so transcription is tested end to end | done: CI job "Transcription (whisper.cpp)" builds a pinned whisper.cpp, caches it with the model, and transcribes espeak-ng speech |

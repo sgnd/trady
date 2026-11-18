@@ -10,7 +10,14 @@ changes go into one release; not every merge gets a tag.
 
 ## [Unreleased]
 
-The first release will be 0.0.1.
+## [0.0.1] - 2026-11-18
+
+The first release of trady.
+
+The macOS binaries are not signed or notarized yet, so macOS warns the
+first time you run `trady`. To allow it, open System Settings, then Privacy
+& Security, and click "Open Anyway" next to the message about trady. Then
+run `trady` again.
 
 ### Added
 
