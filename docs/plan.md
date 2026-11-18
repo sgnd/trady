@@ -46,6 +46,8 @@ clips, the way paid web clip tools do, without uploading anything.
 | 12c | Check whether the macOS keychain key is readable in `/usr/bin/security` arguments; pass it without argv if so | done: the key goes on stdin to `security -i` |
 | 12d | The reveal window on Windows | open; Windows stops with `NEEDS_PERSON` for now |
 | 13 | Agent integration: `trady guide install`, an MCP server, and the skill, tested with a real agent | open |
+| 14 | 0.0.2: `-o text` prints a table, not JSON, for `source add`, `project create` and `secret set` | open |
+| 15 | 0.0.2: CI checks the sha256 of the whisper tiny model it downloads | open |
 
 ## Paid plan
 

@@ -35,6 +35,7 @@ jobs:
     timeout-minutes: 30
     env:
       WHISPER_TAG: v1.9.5
+      WHISPER_COMMIT: d1be6fde11ac6e0407606b4e42fe72d34add8037 # what v1.9.5 points to; a moved tag stops the build
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
@@ -45,11 +46,12 @@ jobs:
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/whisper
-          key: whisper-${{ env.WHISPER_TAG }}-tiny-${{ runner.os }}
+          key: whisper-${{ env.WHISPER_COMMIT }}-tiny-${{ runner.os }}
       - name: Build whisper.cpp and get the tiny model
         run: |
           if [ ! -x ~/whisper/whisper-cli ]; then
             git clone --depth 1 --branch "$WHISPER_TAG" https://github.com/ggml-org/whisper.cpp.git /tmp/wcpp
+            [ "$(git -C /tmp/wcpp rev-parse HEAD)" = "$WHISPER_COMMIT" ] || { echo "::error::whisper.cpp $WHISPER_TAG is not $WHISPER_COMMIT"; exit 1; }
             cmake -S /tmp/wcpp -B /tmp/wcpp/build -DBUILD_SHARED_LIBS=OFF -DCMAKE_BUILD_TYPE=Release
             cmake --build /tmp/wcpp/build -j --target whisper-cli
             mkdir -p ~/whisper && cp /tmp/wcpp/build/bin/whisper-cli ~/whisper/
@@ -66,6 +68,26 @@ jobs:
           TRADY_REQUIRE_FFMPEG: "1"
           TRADY_TEST_SPEECH: /tmp/speech.mp4
           TRADY_WHISPER_MODEL: /home/runner/whisper/ggml-tiny.bin
+      # the release binary on a longer sample: transcribe, score, cut, burn in captions
+      - name: Run the binary end to end
+        env:
+          TRADY_HOME: /tmp/trady-home
+          TRADY_VAULT_PASS: ci-passphrase-long-enough
+          TRADY_WHISPER_MODEL: /home/runner/whisper/ggml-tiny.bin
+          TRADY_AGENT: "1"
+        run: |
+          set -eu
+          make build
+          espeak-ng -s 120 -w /tmp/long.wav "Why does everyone cut clips by hand? Honestly, the secret is simple. Find the moment, cut it, and add captions. The first step is a transcript. It saved me forty percent of my time! Then trady ranks the windows and cuts the best one."
+          ffmpeg -y -f lavfi -i color=size=320x240:rate=25 -i /tmp/long.wav -shortest -c:v libx264 -c:a aac /tmp/long.mp4
+          ./bin/trady source add /tmp/long.mp4 --name ci
+          ./bin/trady source transcribe ci -o text
+          ./bin/trady project create ci --name ci-cuts
+          ./bin/trady project run ci-cuts --out /tmp/clips -o json | tee /tmp/run.json
+          grep -q '"selection":"scored from the transcript"' /tmp/run.json
+          grep -q '"captions":"burned in' /tmp/run.json
+          ./bin/trady clip list ci-cuts -o text
+          ls -l /tmp/clips/*.mp4
 
   cross:
     name: Build and vet (${{ matrix.goos }}/${{ matrix.goarch }})

@@ -19,6 +19,13 @@ first time you run `trady`. To allow it, open System Settings, then Privacy
 & Security, and click "Open Anyway" next to the message about trady. Then
 run `trady` again.
 
+Known issues:
+
+- `-o text` prints JSON instead of a table for `source add`,
+  `project create` and `secret set`.
+- CI downloads the whisper tiny model without a hash check. This affects
+  only the CI test, never a release file.
+
 ### Added
 
 - Sealed local store under `~/.trady` (`TRADY_HOME`), with three key modes:
