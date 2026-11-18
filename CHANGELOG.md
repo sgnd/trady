@@ -24,6 +24,10 @@ The first release will be 0.0.1.
 - `trady source transcribe` and `trady source transcript`: local
   transcription with whisper.cpp. `trady project run` burns captions into
   each clip when a transcript exists or can be made.
+- `trady project run` picks moments from the transcript: 15 to 60 second
+  windows on sentence edges, ranked locally by cue words, questions,
+  numbers and speech pace. Without a transcript it uses evenly spaced
+  placeholders; the `selection` field says which.
 - `trady doctor`, `trady guide`, `trady schema`, and `-o json` output with a
   stable envelope for AI agents.
 
@@ -33,6 +37,8 @@ The first release will be 0.0.1.
   (exit 8) instead of making a second record.
 - Empty lists are `[]` in JSON, not `null`.
 - `trady project rm` also removes the project's moments and clips.
+- Running `trady project run` again replaces the last run's moments and
+  clips instead of adding more.
 - A vault passphrase shorter than 15 characters fails with `KEY` (exit 6).
 - Every command rejects unknown flags, flags without a value, and missing
   or extra arguments (`USAGE`, exit 2).

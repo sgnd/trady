@@ -169,8 +169,15 @@ func RemoveProject(ctx context.Context, idOrName string) error {
 	if err != nil {
 		return err
 	}
-	// remove the project's moments and clips too, so none are left orphaned
-	moments, err := ListMoments(ctx, p.ID)
+	if err := ClearProjectOutput(ctx, p.ID); err != nil {
+		return err
+	}
+	return deleteID(ctx, p.ID)
+}
+
+// ClearProjectOutput removes a project's moments and clips.
+func ClearProjectOutput(ctx context.Context, projectID string) error {
+	moments, err := ListMoments(ctx, projectID)
 	if err != nil {
 		return err
 	}
@@ -179,7 +186,7 @@ func RemoveProject(ctx context.Context, idOrName string) error {
 			return err
 		}
 	}
-	clips, err := ListClips(ctx, p.ID)
+	clips, err := ListClips(ctx, projectID)
 	if err != nil {
 		return err
 	}
@@ -188,7 +195,7 @@ func RemoveProject(ctx context.Context, idOrName string) error {
 			return err
 		}
 	}
-	return deleteID(ctx, p.ID)
+	return nil
 }
 
 func AddMoment(ctx context.Context, m Moment) (Moment, error) {

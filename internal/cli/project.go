@@ -133,10 +133,24 @@ func projectRun(ctx context.Context, args []string) int {
 		return out.P.Fail(mapErr(err))
 	}
 
+	// a new run replaces the moments and clips of the last one
+	if err := inventory.ClearProjectOutput(ctx, p.ID); err != nil {
+		return failJob(ctx, job, p, err)
+	}
+
+	segs, captionNote := captionsFor(ctx, src, &job)
+
 	p.Status = "selecting"
 	_ = inventory.SaveProject(ctx, p)
+	job.Message = "selecting moments"
+	_ = inventory.SaveJob(ctx, job)
 
-	suggested := media.SuggestMoments(p.ID, src.DurationSec)
+	suggested := media.ScoreMoments(p.ID, segs, media.MomentCount(src.DurationSec))
+	selection := "scored from the transcript"
+	if len(suggested) == 0 {
+		suggested = media.SuggestMoments(p.ID, src.DurationSec)
+		selection = "evenly spaced placeholders (no transcript with speech)"
+	}
 	var moments []inventory.Moment
 	for _, m := range suggested {
 		saved, err := inventory.AddMoment(ctx, m)
@@ -150,8 +164,6 @@ func projectRun(ctx context.Context, args []string) int {
 	_ = inventory.SaveProject(ctx, p)
 	job.Message = "rendering clips"
 	_ = inventory.SaveJob(ctx, job)
-
-	segs, captionNote := captionsFor(ctx, src, &job)
 
 	ffmpeg, _ := media.LookPath()
 	rendered := 0
@@ -194,13 +206,13 @@ func projectRun(ctx context.Context, args []string) int {
 	_ = inventory.SaveProject(ctx, p)
 
 	out.P.Print(map[string]any{
-		"project":  p,
-		"job":      job,
-		"moments":  len(moments),
-		"rendered": rendered,
-		"out_dir":  outDir,
-		"captions": captionNote,
-		"note":     "moments are evenly spaced placeholders until local AI scoring lands",
+		"project":   p,
+		"job":       job,
+		"moments":   len(moments),
+		"rendered":  rendered,
+		"out_dir":   outDir,
+		"captions":  captionNote,
+		"selection": selection,
 	})
 	return 0
 }
