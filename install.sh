@@ -4,7 +4,7 @@
 #   curl -fsSL https://raw.githubusercontent.com/sgnd/trady/main/install.sh | sh
 #
 # Installs to /usr/local/bin when writable, otherwise ~/.local/bin.
-# Override with TRADY_INSTALL_DIR. Pin a version with TRADY_VERSION=v0.1.0.
+# Override with TRADY_INSTALL_DIR. Pin a version with TRADY_VERSION=v0.0.1.
 set -eu
 
 REPO="sgnd/trady"
