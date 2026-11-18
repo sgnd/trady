@@ -39,16 +39,16 @@ func guideInstall() int {
 	if err := os.MkdirAll(filepath.Dir(dst), 0o755); err != nil {
 		return out.P.Fail(err)
 	}
-	skillPath := filepath.Join("skills", "trady", "SKILL.md")
-	// Prefer repo skill when developing; else embed guide text as skill body.
-	body, err := os.ReadFile(skillPath)
-	if err != nil {
-		body = []byte("---\nname: trady\ndescription: Local-first CLI for short captioned clips from long recordings.\n---\n\n" + guideMD)
-	}
-	if err := os.WriteFile(dst, body, 0o644); err != nil {
+	if err := os.WriteFile(dst, skillBody(), 0o644); err != nil {
 		return out.P.Fail(err)
 	}
 	out.P.Print(map[string]any{"installed": dst})
 	fmt.Fprintf(os.Stderr, "Installed the Cursor skill to %s. Restart the agent to load it.\n", dst)
 	return 0
+}
+
+// skillBody is the Cursor skill that guide install writes. It comes only from
+// the binary: a file in the current folder could plant agent instructions.
+func skillBody() []byte {
+	return []byte("---\nname: trady\ndescription: One local command line that turns long recordings into short captioned clips.\n---\n\n" + guideMD)
 }

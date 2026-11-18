@@ -85,3 +85,17 @@ func TestCutWithCaptions(t *testing.T) {
 		t.Fatalf("clip: %+v, %v", got, err)
 	}
 }
+
+func TestSRTDropsStyleTags(t *testing.T) {
+	segs := []inventory.Segment{{StartSec: 0, EndSec: 2, Text: `{\fs200\alpha&HFF&}hidden <font color="red">red</font> a\Nb`}}
+	lines := strings.Split(SRT(segs, 0, 2), "\n")
+	got := lines[2] // the caption text line, after the number and the times
+	for _, bad := range []string{"{", "}", "<", ">", `\`} {
+		if strings.Contains(got, bad) {
+			t.Fatalf("caption keeps %q: %q", bad, got)
+		}
+	}
+	if !strings.Contains(got, "hidden") || !strings.Contains(got, "red") {
+		t.Fatalf("caption lost its words: %q", got)
+	}
+}
