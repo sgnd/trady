@@ -29,6 +29,9 @@ usage: trady secret set NAME [--from-env VAR]
 	case "set":
 		return secretSet(ctx, args[1:])
 	case "list":
+		if _, _, ok := parse("secret list", args[1:], nil); !ok {
+			return out.ExitUsage
+		}
 		return secretList(ctx)
 	case "show":
 		return secretShow(ctx, args[1:])
@@ -40,24 +43,18 @@ usage: trady secret set NAME [--from-env VAR]
 }
 
 func secretSet(ctx context.Context, args []string) int {
-	var name, fromEnv string
-	for i := 0; i < len(args); i++ {
-		switch {
-		case args[i] == "--from-env" && i+1 < len(args):
-			fromEnv = args[i+1]
-			i++
-		case strings.HasPrefix(args[i], "-"):
-			return out.P.Fail(out.Usage("unknown flag %s", args[i]))
-		case name == "":
-			name = args[i]
-		default:
-			return out.P.Fail(out.Errf(out.ExitUsage, "SECRET_IN_ARGS", "use --from-env or stdin; a value on the command line stays in shell history",
-				"refusing a secret value on the command line"))
-		}
+	pos, vals, perr := parseArgs("secret set", args, map[string]bool{"--from-env": true})
+	if perr != nil {
+		return out.P.Fail(perr)
 	}
-	if name == "" {
-		return out.P.Fail(out.Usage("secret set needs a NAME"))
+	if len(pos) > 1 {
+		return out.P.Fail(out.Errf(out.ExitUsage, "SECRET_IN_ARGS", "use --from-env or stdin; a value on the command line stays in shell history",
+			"refusing a secret value on the command line"))
 	}
+	if len(pos) == 0 {
+		return out.P.Fail(out.Usage("secret set needs NAME"))
+	}
+	name, fromEnv := pos[0], vals["--from-env"]
 	var value string
 	switch {
 	case fromEnv != "":
@@ -129,22 +126,11 @@ func secretList(ctx context.Context) int {
 }
 
 func secretShow(ctx context.Context, args []string) int {
-	reveal := false
-	var name string
-	for _, a := range args {
-		switch a {
-		case "--reveal":
-			reveal = true
-		default:
-			if strings.HasPrefix(a, "-") {
-				return out.P.Fail(out.Usage("unknown flag %s", a))
-			}
-			name = a
-		}
+	pos, vals, ok := parse("secret show", args, map[string]bool{"--reveal": false}, "NAME")
+	if !ok {
+		return out.ExitUsage
 	}
-	if name == "" {
-		return out.P.Fail(out.Usage("secret show needs a NAME"))
-	}
+	name, reveal := pos[0], vals["--reveal"] == "true"
 	ok, err := vault.Exists(ctx, name)
 	if err != nil {
 		return out.P.Fail(mapErr(err))
@@ -168,10 +154,11 @@ func secretShow(ctx context.Context, args []string) int {
 }
 
 func secretRm(ctx context.Context, args []string) int {
-	if len(args) == 0 {
-		return out.P.Fail(out.Usage("secret rm needs a NAME"))
+	pos, _, ok := parse("secret rm", args, nil, "NAME")
+	if !ok {
+		return out.ExitUsage
 	}
-	name := args[0]
+	name := pos[0]
 	if err := vault.Delete(ctx, name); err != nil {
 		if errors.Is(err, sealdb.ErrNotFound) {
 			return out.P.Fail(out.Errf(out.ExitNotFound, "SECRET_NOT_FOUND", "trady secret list", "secret %q not found", name))

@@ -54,6 +54,9 @@ func cmdDoctor(args []string) int {
 		out.P.Print("usage: trady doctor\nChecks TRADY_HOME, sealed store, key mode, and ffmpeg/ffprobe.")
 		return 0
 	}
+	if _, _, ok := parse("doctor", args, nil); !ok {
+		return out.ExitUsage
+	}
 	ctx := context.Background()
 	dir, err := home.Ensure()
 	if err != nil {

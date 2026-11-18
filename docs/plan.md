@@ -28,7 +28,7 @@ clips, the way paid web clip tools do, without uploading anything.
 |---|---|---|
 | 1 | End-to-end CLI test; name conflicts (`CONFLICT`, exit 8); empty lists are `[]`; `project rm` removes its moments and clips; weak vault key gives `KEY` (exit 6) | done |
 | 2 | Unit tests for `inventory`, `out`, `media` (moment placement) and `store` (key modes) | done |
-| 3 | Argument checks: reject extra arguments and unknown flags in every command | open |
+| 3 | Argument checks: reject extra arguments and unknown flags in every command | done |
 | 4 | Real clip export with ffmpeg: cut, captions burned in, test with a generated sample video in CI | open |
 | 5 | Local moment scoring (replace the evenly spaced placeholders) | open |
 | 6 | `secret` and vault: tests for set, list, show, rm; agent can never print a value | open |
