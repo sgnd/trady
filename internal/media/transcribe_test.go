@@ -75,7 +75,7 @@ func TestCutWithCaptions(t *testing.T) {
 	clip := filepath.Join(dir, "out", "clip.mp4")
 	srt := SRT([]inventory.Segment{{StartSec: 1, EndSec: 3, Text: "Hello: it's 'quoted'"}}, 1, 4)
 	if err := Cut(context.Background(), src, 1, 4, clip, srt); err != nil {
-		if strings.Contains(err.Error(), "subtitles") {
+		if strings.Contains(err.Error(), "subtitles") && os.Getenv("TRADY_REQUIRE_FFMPEG") != "1" {
 			t.Skip("this ffmpeg has no subtitles filter (libass)")
 		}
 		t.Fatal(err)

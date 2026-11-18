@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"golang.org/x/term"
+
 	"github.com/sgnd/trady/internal/out"
 	"github.com/sgnd/trady/internal/sealdb"
 	"github.com/sgnd/trady/internal/vault"
@@ -55,6 +57,9 @@ func secretSet(ctx context.Context, args []string) int {
 		return out.P.Fail(out.Usage("secret set needs NAME"))
 	}
 	name, fromEnv := pos[0], vals["--from-env"]
+	if !vault.ValidName(name) {
+		return out.P.Fail(out.Usage("secret name %q: use 1 to 64 letters, digits, '_', '-' or '.'", name))
+	}
 	var value string
 	switch {
 	case fromEnv != "":
@@ -83,9 +88,14 @@ func secretSet(ctx context.Context, args []string) int {
 	return 0
 }
 
-func readHidden(r io.Reader) ([]byte, error) {
-	// Phase 0/1: plain read; terminal echo hide can come later.
-	return io.ReadAll(io.LimitReader(r, 1<<20))
+// readHidden reads the value without echo at a terminal, or from a pipe.
+func readHidden(f *os.File) ([]byte, error) {
+	if term.IsTerminal(int(f.Fd())) {
+		b, err := term.ReadPassword(int(f.Fd()))
+		fmt.Fprintln(os.Stderr)
+		return b, err
+	}
+	return io.ReadAll(io.LimitReader(f, 1<<20))
 }
 
 type secretListData struct {
@@ -115,6 +125,10 @@ func secretList(ctx context.Context) int {
 	}
 	var d secretListData
 	d.Count = len(items)
+	d.Secrets = []struct {
+		Name      string    `json:"name"`
+		UpdatedAt time.Time `json:"updated_at"`
+	}{}
 	for _, it := range items {
 		d.Secrets = append(d.Secrets, struct {
 			Name      string    `json:"name"`
