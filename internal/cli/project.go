@@ -126,8 +126,9 @@ func projectRun(ctx context.Context, args []string) int {
 		return out.P.Fail(mapErr(err))
 	}
 
-	// a new run replaces the moments and clips of the last one
-	if err := inventory.ClearProjectOutput(ctx, p.ID); err != nil {
+	// a new run replaces the clips and the scored moments of the last one;
+	// the moments picked with `moment set` stay
+	if err := inventory.ClearSuggested(ctx, p.ID); err != nil {
 		return failJob(ctx, job, p, err)
 	}
 
@@ -138,19 +139,9 @@ func projectRun(ctx context.Context, args []string) int {
 	job.Message = "selecting moments"
 	_ = inventory.SaveJob(ctx, job)
 
-	suggested := media.ScoreMoments(p.ID, segs, media.MomentCount(src.DurationSec))
-	selection := "scored from the transcript"
-	if len(suggested) == 0 {
-		suggested = media.SuggestMoments(p.ID, src.DurationSec)
-		selection = "evenly spaced placeholders (no transcript with speech)"
-	}
-	var moments []inventory.Moment
-	for _, m := range suggested {
-		saved, err := inventory.AddMoment(ctx, m)
-		if err != nil {
-			return failJob(ctx, job, p, err)
-		}
-		moments = append(moments, saved)
+	moments, selection, err := chooseMoments(ctx, p, src, segs)
+	if err != nil {
+		return failJob(ctx, job, p, err)
 	}
 
 	p.Status = "rendering"
@@ -243,4 +234,38 @@ func failJob(ctx context.Context, job inventory.Job, p inventory.Project, err er
 	p.Error = err.Error()
 	_ = inventory.SaveProject(ctx, p)
 	return out.P.Fail(mapErr(err))
+}
+
+// chooseMoments returns the moments to cut: the ones picked with
+// `moment set` when there are any, else the best windows of the transcript,
+// else evenly spaced placeholders. The note says which.
+func chooseMoments(ctx context.Context, p inventory.Project, src inventory.Source, segs []inventory.Segment) ([]inventory.Moment, string, error) {
+	existing, err := inventory.ListMoments(ctx, p.ID)
+	if err != nil {
+		return nil, "", err
+	}
+	var picks []inventory.Moment
+	for _, m := range existing {
+		if m.Picked {
+			picks = append(picks, m)
+		}
+	}
+	if len(picks) > 0 {
+		return picks, "picked with `trady moment set`", nil
+	}
+	suggested := media.ScoreMoments(p.ID, segs, media.MomentCount(src.DurationSec))
+	selection := "scored from the transcript"
+	if len(suggested) == 0 {
+		suggested = media.SuggestMoments(p.ID, src.DurationSec)
+		selection = "evenly spaced placeholders (no transcript with speech)"
+	}
+	var moments []inventory.Moment
+	for _, m := range suggested {
+		saved, err := inventory.AddMoment(ctx, m)
+		if err != nil {
+			return nil, "", err
+		}
+		moments = append(moments, saved)
+	}
+	return moments, selection, nil
 }

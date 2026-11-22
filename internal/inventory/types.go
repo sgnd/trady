@@ -51,6 +51,7 @@ type Moment struct {
 	Score     int     `json:"score"`
 	StartSec  float64 `json:"start_sec"`
 	EndSec    float64 `json:"end_sec"`
+	Picked    bool    `json:"picked,omitempty"` // set by a person or an agent with `moment set`, not scored
 }
 
 type Clip struct {

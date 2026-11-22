@@ -198,6 +198,63 @@ func ClearProjectOutput(ctx context.Context, projectID string) error {
 	return nil
 }
 
+// ClearSuggested removes the scored moments and every clip of a project and
+// keeps the moments a person or an agent picked with `moment set`.
+func ClearSuggested(ctx context.Context, projectID string) error {
+	moments, err := ListMoments(ctx, projectID)
+	if err != nil {
+		return err
+	}
+	for _, m := range moments {
+		if m.Picked {
+			continue
+		}
+		if err := deleteID(ctx, m.ID); err != nil {
+			return err
+		}
+	}
+	clips, err := ListClips(ctx, projectID)
+	if err != nil {
+		return err
+	}
+	for _, c := range clips {
+		if err := deleteID(ctx, c.ID); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// ClearPicks removes the picked moments of a project, so the next run scores
+// the transcript again. Their clips go with them.
+func ClearPicks(ctx context.Context, projectID string) error {
+	moments, err := ListMoments(ctx, projectID)
+	if err != nil {
+		return err
+	}
+	picked := map[string]bool{}
+	for _, m := range moments {
+		if m.Picked {
+			picked[m.ID] = true
+			if err := deleteID(ctx, m.ID); err != nil {
+				return err
+			}
+		}
+	}
+	clips, err := ListClips(ctx, projectID)
+	if err != nil {
+		return err
+	}
+	for _, c := range clips {
+		if picked[c.MomentID] {
+			if err := deleteID(ctx, c.ID); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 func AddMoment(ctx context.Context, m Moment) (Moment, error) {
 	id, err := sealrow.NewID()
 	if err != nil {

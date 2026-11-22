@@ -3,21 +3,31 @@ package cli
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/sgnd/trady/internal/inventory"
+	"github.com/sgnd/trady/internal/media"
 	"github.com/sgnd/trady/internal/out"
 )
 
 func cmdMoment(args []string) int {
-	if len(args) == 0 || hasHelp(args) || args[0] != "list" {
+	if len(args) == 0 || hasHelp(args) {
 		out.P.Print(usage("moment"))
-		if len(args) > 0 && args[0] != "list" {
-			return out.P.Fail(out.Usage("unknown moment subcommand"))
-		}
 		return 0
 	}
-	pos, _, ok := parse("moment list", args[1:], nil, "PROJECT")
+	switch args[0] {
+	case "list":
+		return momentList(args[1:])
+	case "set":
+		return momentSet(args[1:])
+	default:
+		return out.P.Fail(out.Usage("unknown moment subcommand %q", args[0]))
+	}
+}
+
+func momentList(args []string) int {
+	pos, _, ok := parse("moment list", args, nil, "PROJECT")
 	if !ok {
 		return out.ExitUsage
 	}
@@ -31,6 +41,64 @@ func cmdMoment(args []string) int {
 		return out.P.Fail(mapErr(err))
 	}
 	out.P.Print(momentListData{Count: len(list), Moments: list})
+	return 0
+}
+
+const maxPickTitle = 120
+
+// momentSet records the moments a person or an agent picked, in place of the
+// scored ones: the next `project run` cuts exactly these.
+func momentSet(args []string) int {
+	pos, vals, ok := parse("moment set", args, map[string]bool{"--start": true, "--end": true, "--title": true, "--clear": false}, "PROJECT")
+	if !ok {
+		return out.ExitUsage
+	}
+	ctx := context.Background()
+	if vals["--clear"] == "true" {
+		if vals["--start"] != "" || vals["--end"] != "" || vals["--title"] != "" {
+			return out.P.Fail(out.Usage("moment set: --clear takes no --start, --end or --title"))
+		}
+		p, err := inventory.GetProject(ctx, pos[0])
+		if err != nil {
+			return out.P.Fail(mapErr(err))
+		}
+		if err := inventory.ClearPicks(ctx, p.ID); err != nil {
+			return out.P.Fail(mapErr(err))
+		}
+		out.P.Print(map[string]any{"project": p.Name, "cleared": true})
+		return 0
+	}
+	if vals["--start"] == "" || vals["--end"] == "" {
+		return out.P.Fail(out.Usage("moment set: give --start SEC and --end SEC (or --clear)"))
+	}
+	start, err1 := strconv.ParseFloat(vals["--start"], 64)
+	end, err2 := strconv.ParseFloat(vals["--end"], 64)
+	if err1 != nil || err2 != nil {
+		return out.P.Fail(out.Usage("moment set: --start and --end are seconds, such as 30 or 62.5"))
+	}
+	title := strings.TrimSpace(vals["--title"])
+	if title == "" {
+		title = "Picked moment"
+	}
+	if len([]rune(title)) > maxPickTitle {
+		return out.P.Fail(out.Usage("moment set: --title is at most %d characters", maxPickTitle))
+	}
+	p, err := inventory.GetProject(ctx, pos[0])
+	if err != nil {
+		return out.P.Fail(mapErr(err))
+	}
+	src, err := inventory.GetSource(ctx, p.SourceID)
+	if err != nil {
+		return out.P.Fail(mapErr(err))
+	}
+	if err := media.ValidatePick(start, end, src.DurationSec); err != nil {
+		return out.P.Fail(out.Usage("moment set: %v", err))
+	}
+	m, err := inventory.AddMoment(ctx, inventory.Moment{ProjectID: p.ID, Title: title, Category: "picked", Score: 100, StartSec: start, EndSec: end, Picked: true})
+	if err != nil {
+		return out.P.Fail(mapErr(err))
+	}
+	out.P.Print(map[string]any{"project": p.Name, "moment": m, "next": "trady project run " + p.Name})
 	return 0
 }
 

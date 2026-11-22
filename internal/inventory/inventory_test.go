@@ -137,3 +137,43 @@ func TestTranscript(t *testing.T) {
 		t.Fatalf("transcript left after source rm: %v", err)
 	}
 }
+
+func TestPickedMomentsSurviveARun(t *testing.T) {
+	ctx := setup(t)
+	if _, err := AddMoment(ctx, Moment{ProjectID: "p1", Title: "scored", StartSec: 0, EndSec: 20}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := AddMoment(ctx, Moment{ProjectID: "p1", Title: "mine", StartSec: 30, EndSec: 50, Picked: true}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := AddMoment(ctx, Moment{ProjectID: "p2", Title: "other project", Picked: true}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := AddClip(ctx, Clip{ProjectID: "p1", Status: "rendered"}); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := ClearSuggested(ctx, "p1"); err != nil {
+		t.Fatal(err)
+	}
+	ms, _ := ListMoments(ctx, "p1")
+	if len(ms) != 1 || ms[0].Title != "mine" {
+		t.Fatalf("moments after ClearSuggested: %+v", ms)
+	}
+	if cs, _ := ListClips(ctx, "p1"); len(cs) != 0 {
+		t.Errorf("clips after ClearSuggested: %+v", cs)
+	}
+	if other, _ := ListMoments(ctx, "p2"); len(other) != 1 {
+		t.Error("another project's pick was touched")
+	}
+
+	if err := ClearPicks(ctx, "p1"); err != nil {
+		t.Fatal(err)
+	}
+	if ms, _ := ListMoments(ctx, "p1"); len(ms) != 0 {
+		t.Errorf("moments after ClearPicks: %+v", ms)
+	}
+	if other, _ := ListMoments(ctx, "p2"); len(other) != 1 {
+		t.Error("ClearPicks touched another project")
+	}
+}

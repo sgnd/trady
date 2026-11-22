@@ -35,7 +35,7 @@ var schemas = map[string][]string{
 		"trady project run NAME|ID [--out DIR]",
 		"trady project rm NAME|ID",
 	},
-	"moment": {"trady moment list PROJECT"},
+	"moment": {"trady moment list PROJECT", "trady moment set PROJECT --start SEC --end SEC [--title TITLE]", "trady moment set PROJECT --clear"},
 	"clip":   {"trady clip list PROJECT"},
 	"job":    {"trady job list", "trady job get ID"},
 }
