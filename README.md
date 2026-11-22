@@ -42,22 +42,57 @@ trady version
 trady doctor
 ```
 
-Optional: put `ffmpeg` / `ffprobe` on your `PATH` so duration probe and
-clip export work, and `whisper-cli` with a model for captions. Without them, moments still save; clips stay `skipped`.
+Clips need `ffmpeg` (it brings `ffprobe`), and captions need `whisper-cli`
+and a model. Without them moments still save, and clips stay `skipped`.
+`trady doctor` prints the exact command for each missing tool. trady never
+installs anything itself:
+
+| System | ffmpeg | whisper-cli | Model |
+|---|---|---|---|
+| macOS | `brew install ffmpeg` | `brew install whisper-cpp` | `mkdir -p ~/.trady/models && curl -fL -o ~/.trady/models/ggml-base.bin https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin` |
+| Linux | `sudo apt install ffmpeg` | build whisper.cpp from its repository ([steps](docs/features/captions.md)) | the same `curl` as on macOS |
+| Windows | `winget install Gyan.FFmpeg` | `whisper-bin-x64.zip` from [whisper.cpp releases](https://github.com/ggml-org/whisper.cpp/releases) | `curl.exe -fL -o %USERPROFILE%\.trady\models\ggml-base.bin` and the same URL |
+
+Untested on Windows so far: trady is built for Windows but has not been run there.
 
 More detail: [Install](docs/features/install.md).
 
 ## Quick start
 
 ```bash
-./bin/trady source add ./episode.mp4 --name ep1
-./bin/trady project create ep1 --name ep1-cuts
-./bin/trady project run ep1-cuts --out ./exports
-./bin/trady moment list ep1-cuts
-./bin/trady clip list ep1-cuts
+trady source add ./episode.mp4 --name ep1
+trady source transcribe ep1
+trady project create ep1 --name ep1-cuts
+trady project run ep1-cuts --out ./exports
+trady moment list ep1-cuts
+trady clip list ep1-cuts
 ```
 
 Agents: set `TRADY_AGENT=1`, prefer `-o json`, start with `trady guide`.
+
+To choose the moments yourself (or let your agent choose them), read the
+transcript with `trady source transcript ep1`, then:
+
+```bash
+trady moment set ep1-cuts --start 30 --end 62.5 --title "Why the plan failed"
+trady project run ep1-cuts --out ./exports   # cuts exactly your picks
+trady moment set ep1-cuts --clear            # back to scored moments
+```
+
+## Connect your AI agent
+
+```bash
+trady guide install            # Claude Code, Codex, Cursor, Gemini CLI
+trady guide install --project  # only for the folder you are in
+trady guide install --dry-run  # show where it would write
+```
+
+It writes the trady skill to `~/.claude/skills/trady/SKILL.md` (Claude Code)
+and `~/.agents/skills/trady/SKILL.md` (Codex, Cursor, Gemini CLI and others),
+and nothing else. It makes no network call. Run it again after an update: a
+changed file is kept as `.bak`. A person runs it; an agent that tries gets
+`NEEDS_PERSON`, except with `--dry-run`. See [AGENTS.md](AGENTS.md) for
+agents that read no skills.
 
 ## Commands
 
@@ -67,15 +102,16 @@ Agents: set `TRADY_AGENT=1`, prefer `-o json`, start with `trady guide`.
 | Secrets | `secret set\|list\|show\|rm` |
 | Media | `source add\|list\|transcribe\|transcript\|rm` |
 | Projects | `project create\|list\|get\|status\|run\|rm` |
-| Results | `moment list`, `clip list`, `job list\|get` |
+| Results | `moment list\|set`, `clip list`, `job list\|get` |
 
 ## Scope
 
 With a transcript, `project run` ranks moments with simple local rules
 (cue words, questions, numbers, speech pace), not an AI judge. Without one
-it uses evenly spaced windows. Clips are cut with ffmpeg, and captions are
-burned in when whisper.cpp and a model are installed. Captions are one line
-per spoken segment, not word by word.
+it uses evenly spaced windows. Moments you set with `moment set` replace
+the scored ones. Clips are cut with ffmpeg, and captions are burned in word
+by word when whisper.cpp and a model are installed: up to four words a line,
+each word fills with colour while it is spoken.
 
 ## Docs
 

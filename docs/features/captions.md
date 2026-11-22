@@ -14,6 +14,9 @@ or text leaves the machine.
 
 trady does not download anything. You install the tools and the model.
 
+`trady doctor` prints the exact next command for each missing tool on your
+system.
+
 ## Install
 
 macOS:
@@ -23,7 +26,21 @@ brew install ffmpeg whisper-cpp
 ```
 
 Linux (Debian, Ubuntu): install `ffmpeg` with apt, then build whisper.cpp
-from its repository.
+and put `whisper-cli` on your `PATH`:
+
+```bash
+sudo apt install ffmpeg
+git clone https://github.com/ggml-org/whisper.cpp
+cd whisper.cpp
+cmake -B build
+cmake --build build -j --config Release
+sudo cp build/bin/whisper-cli /usr/local/bin/
+```
+
+Windows: `winget install Gyan.FFmpeg`, then download `whisper-bin-x64.zip` from
+the [whisper.cpp releases](https://github.com/ggml-org/whisper.cpp/releases)
+and put `whisper-cli.exe` in a folder on your `PATH`. trady is built for
+Windows but has not been run there yet.
 
 ## Get a model
 
@@ -41,6 +58,19 @@ curl -fL -o ~/.trady/models/ggml-base.bin https://huggingface.co/ggerganov/whisp
 
 Larger models (`ggml-small.bin`, `ggml-medium.bin`) are more accurate and
 slower. Point `TRADY_WHISPER_MODEL` at one to use it.
+
+## How the captions look
+
+Captions are word by word. Each line shows up to four words, and every word
+fills with colour while it is spoken: white text that turns yellow, with a
+black outline, at the bottom of the picture. The size follows the video, so
+vertical and horizontal clips both read well. `source transcribe` asks
+whisper.cpp for word times and keeps them with the transcript.
+
+A transcript made before v0.1.0 has line times only. Its clips get one
+caption line per spoken segment; run `trady source transcribe` again to get
+word by word. Words in a recording cannot restyle the captions: style
+blocks such as `{\an8}` are dropped.
 
 ## Use
 
