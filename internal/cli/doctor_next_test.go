@@ -20,7 +20,7 @@ func TestNextStepsNameTheExactCommand(t *testing.T) {
 		{"linux, no whisper", "linux", tools{FFmpeg: true, FFprobe: true, Model: true}, []string{"cmake -B build"}, []string{"whisper-cli"}},
 		{"linux, no ffmpeg", "linux", tools{Whisper: true, Model: true}, []string{"sudo apt install ffmpeg"}, []string{"ffmpeg"}},
 		{"windows", "windows", tools{}, []string{"winget install Gyan.FFmpeg", "whisper-bin-x64.zip", "curl.exe -fL -o"}, []string{"ffmpeg", "whisper-cli", "whisper model"}},
-		{"mac, ffmpeg without libass", "darwin", tools{FFmpeg: true, FFprobe: true, Whisper: true, Model: true, NoLibass: true}, []string{"libass"}, []string{"libass"}},
+		{"mac, ffmpeg without libass", "darwin", tools{FFmpeg: true, FFprobe: true, Whisper: true, Model: true, NoLibass: true}, []string{"ffmpeg -filters | grep ass"}, []string{"libass"}},
 		{"linux, ffmpeg without libass", "linux", tools{FFmpeg: true, FFprobe: true, Whisper: true, Model: true, NoLibass: true}, []string{"sudo apt install ffmpeg"}, []string{"libass"}},
 		{"ffprobe missing means ffmpeg install", "darwin", tools{FFmpeg: true, Whisper: true, Model: true}, []string{"brew install ffmpeg"}, []string{"ffprobe"}},
 	}
@@ -84,5 +84,14 @@ func TestDoctorWarnsWithoutLibass(t *testing.T) {
 	}
 	if libassWarning(tools{FFmpeg: true}) != "" || libassWarning(tools{NoLibass: true}) != "" {
 		t.Fatal("a warning without the condition")
+	}
+}
+
+// The macOS hint names no tap or package that was not checked to have libass.
+func TestLibassHintNamesNoUncheckedTap(t *testing.T) {
+	for _, s := range nextSteps("darwin", "/m", tools{FFmpeg: true, FFprobe: true, Whisper: true, Model: true, NoLibass: true}) {
+		if strings.Contains(s.Command, "brew") || strings.Contains(s.Command, "tap") {
+			t.Fatalf("unchecked install hint: %q", s.Command)
+		}
 	}
 }

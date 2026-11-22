@@ -62,7 +62,7 @@ func nextSteps(goos, modelPath string, have tools) []nextStep {
 		steps = append(steps, nextStep{tool, cmd})
 	}
 	if have.FFmpeg && have.NoLibass {
-		cmd := "install an ffmpeg built with libass, for example: brew tap homebrew-ffmpeg/ffmpeg && brew install homebrew-ffmpeg/ffmpeg/ffmpeg"
+		cmd := "install an ffmpeg built with libass; check it with: ffmpeg -filters | grep ass"
 		switch goos {
 		case "linux":
 			cmd = "sudo apt install ffmpeg (the Debian and Ubuntu package has libass)"
