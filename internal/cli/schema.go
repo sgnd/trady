@@ -11,7 +11,7 @@ import (
 var schemas = map[string][]string{
 	"version": {"trady version"},
 	"doctor":  {"trady doctor"},
-	"guide":   {"trady guide", "trady guide install"},
+	"guide":   {"trady guide", "trady guide install [--project] [--dry-run]"},
 	"schema":  {"trady schema [COMMAND]"},
 	"list":    {"trady list"},
 	"secret": {
