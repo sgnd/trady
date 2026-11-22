@@ -19,14 +19,14 @@ trady is **local-first** (sealed `~/.trady`). Not a SaaS API client.
 6. On `NEEDS_PERSON` or policy errors, stop and ask the human.
 7. Prefer `-o json` when branching. Read `error.hint`.
 8. A missing ffmpeg, whisper-cli or model is the human's to install: show them
-   the command `trady doctor` prints. `trady guide install` is theirs to run.
+   the command `trady doctor` prints. The home-wide `trady guide install` is theirs to run (`--project` and `--dry-run` are yours).
 
 ## Commands
 
 - `trady version`: print the version
 - `trady doctor`: check TRADY_HOME, the store, ffmpeg, whisper-cli and the model, and print the next command for each missing tool
 - `trady guide`: print the playbook
-- `trady guide install`: teach Claude Code, Codex, Cursor and Gemini CLI to use trady (a person runs it; an agent may add --dry-run)
+- `trady guide install`: teach Claude Code, Codex, Cursor and Gemini CLI to use trady (a person runs it; an agent may add --project or --dry-run)
 - `trady schema`: print the usage line of every command
 - `trady list`: list sources and projects
 - `trady secret set`: store a secret in the vault

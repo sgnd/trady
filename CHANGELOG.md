@@ -15,7 +15,7 @@ changes go into one release; not every merge gets a tag.
 - Word-by-word captions. `source transcribe` now asks whisper.cpp for word times (`-ml 1 -sow`) and keeps them with the transcript. `project run` burns them in with ffmpeg and libass as an ASS file: up to four words a line, each word fills with colour while it is spoken, sized for the video (portrait or landscape). A transcript made before this release has line times only: its clips keep the old one-line captions, and `source transcribe` again gives word by word.
 - `doctor` prints the exact next command for each missing tool (ffmpeg, whisper-cli, the model) for macOS, Linux and Windows. It prints them and runs nothing.
 - `moment set PROJECT --start SEC --end SEC [--title TEXT]` records the moments a person or an agent picked (5 to 180 seconds), and `moment set PROJECT --clear` removes the picks. `project run` cuts exactly the picks when there are any, and keeps them across runs.
-- `guide install` now teaches Claude Code (`~/.claude/skills`), Codex, Cursor and Gemini CLI (`~/.agents/skills`), with `--project`, `--dry-run` and a `.bak` of a changed file. It writes the skill that is built into the binary. A person runs it; an agent gets `NEEDS_PERSON` unless it adds `--dry-run`.
+- `guide install` now teaches Claude Code (`~/.claude/skills`), Codex, Cursor and Gemini CLI (`~/.agents/skills`), with `--project`, `--dry-run` and a `.bak` of a changed file. It writes the skill that is built into the binary. The home-wide install is a person's to run; an agent may add `--project` or `--dry-run`, and gets `NEEDS_PERSON` otherwise.
 - `skills/trady/SKILL.md`, `AGENTS.md` and the README list exactly the commands the binary has; a test fails when they drift.
 
 ### Changed

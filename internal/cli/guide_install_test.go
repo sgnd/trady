@@ -136,18 +136,33 @@ func TestGuideInstallProjectRefusesLink(t *testing.T) {
 	}
 }
 
-// An agent may look (--dry-run) but a person must run the real install.
-func TestGuideInstallAgentMayOnlyDryRun(t *testing.T) {
+// An agent may look (--dry-run) and may install into the project it works in
+// (--project); the home-wide install changes every project on the machine, so
+// a person runs it.
+func TestGuideInstallAgentRules(t *testing.T) {
 	home := fakeHome(t)
 	code, env := runGuide(t, true, "install")
 	if e, _ := env["error"].(map[string]any); code != out.ExitPolicy || e["code"] != "NEEDS_PERSON" {
-		t.Fatalf("exit %d, error %v", code, e)
+		t.Fatalf("home install by an agent: exit %d, error %v", code, e)
 	}
 	if entries, _ := os.ReadDir(home); len(entries) != 0 {
-		t.Error("an agent's install wrote files")
+		t.Error("an agent's home install wrote files")
 	}
 	if code, env := runGuide(t, true, "install", "--dry-run"); code != 0 || installActions(env) != "created,created" {
 		t.Errorf("agent dry run: exit %d, %s", code, installActions(env))
+	}
+	proj := t.TempDir()
+	t.Chdir(proj)
+	if code, env := runGuide(t, true, "install", "--project"); code != 0 || installActions(env) != "created,created" {
+		t.Errorf("agent project install: exit %d, %s", code, installActions(env))
+	}
+	for _, p := range skillPaths(proj) {
+		if _, err := os.Stat(p); err != nil {
+			t.Errorf("project install missing %s", p)
+		}
+	}
+	if entries, _ := os.ReadDir(home); len(entries) != 0 {
+		t.Error("an agent's --project install reached the home folder")
 	}
 }
 

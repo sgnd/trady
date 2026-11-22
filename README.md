@@ -90,8 +90,8 @@ trady guide install --dry-run  # show where it would write
 It writes the trady skill to `~/.claude/skills/trady/SKILL.md` (Claude Code)
 and `~/.agents/skills/trady/SKILL.md` (Codex, Cursor, Gemini CLI and others),
 and nothing else. It makes no network call. Run it again after an update: a
-changed file is kept as `.bak`. A person runs it; an agent that tries gets
-`NEEDS_PERSON`, except with `--dry-run`. See [AGENTS.md](AGENTS.md) for
+changed file is kept as `.bak`. The home-wide install is for a person: an agent that
+tries gets `NEEDS_PERSON`, except with `--project` or `--dry-run`. See [AGENTS.md](AGENTS.md) for
 agents that read no skills.
 
 ## Commands

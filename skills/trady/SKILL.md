@@ -24,7 +24,7 @@ Set `TRADY_AGENT=1` under a pseudo-terminal so trady never prompts.
 - `trady version`: print the version
 - `trady doctor`: check TRADY_HOME, the store, ffmpeg, whisper-cli and the model, and print the next command for each missing tool
 - `trady guide`: print the playbook
-- `trady guide install`: teach Claude Code, Codex, Cursor and Gemini CLI to use trady (a person runs it; an agent may add --dry-run)
+- `trady guide install`: teach Claude Code, Codex, Cursor and Gemini CLI to use trady (a person runs it; an agent may add --project or --dry-run)
 - `trady schema`: print the usage line of every command
 - `trady list`: list sources and projects
 - `trady secret set`: store a secret in the vault
@@ -58,4 +58,4 @@ Set `TRADY_AGENT=1` under a pseudo-terminal so trady never prompts.
 5. With a transcript, `project run` ranks moments locally and burns word-by-word captions in; without one it uses evenly spaced windows. A missing tool or model is for the human to install: `trady doctor` prints the exact command for each, and you show it to them. Do not run installs yourself.
 6. On `NEEDS_PERSON` / policy stops, ask the human. Do not retry with other flags on your own.
 7. Prefer `-o json` when branching on results.
-8. Run `trady guide install` only when the human asks, and it is theirs to run: as an agent you get `NEEDS_PERSON`. `--dry-run` shows where it would write.
+8. Run `trady guide install` only when the human asks. As an agent you may add `--project` (the folder you work in) or `--dry-run`; the home-wide install answers `NEEDS_PERSON` and is the human's to run.

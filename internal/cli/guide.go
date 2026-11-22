@@ -72,10 +72,11 @@ func (r skillResult) Text() string {
 }
 
 // guideInstall teaches Claude Code, Codex, Cursor and Gemini CLI to use trady
-// by writing the skill that is built into this binary. An agent may only
-// look (--dry-run): the files go into a person's home folder.
+// by writing the skill that is built into this binary. An agent may look
+// (--dry-run) and may install into the project it works in (--project); the
+// home-wide install changes every project on the machine, so a person runs it.
 func guideInstall(project, dry bool) int {
-	if isAgent() && !dry {
+	if isAgent() && !dry && !project {
 		return out.P.Fail(out.NeedsPerson("guide install"))
 	}
 	base, err := os.UserHomeDir()
