@@ -74,9 +74,52 @@ func TestCutWithCaptions(t *testing.T) {
 	}
 	clip := filepath.Join(dir, "out", "clip.mp4")
 	srt := SRT([]inventory.Segment{{StartSec: 1, EndSec: 3, Text: "Hello: it's 'quoted'"}}, 1, 4)
-	if err := Cut(context.Background(), src, 1, 4, clip, srt); err != nil {
+	burned, err := Cut(context.Background(), src, 1, 4, clip, Captions{SRT: srt})
+	if err == nil && !burned && os.Getenv("TRADY_REQUIRE_FFMPEG") == "1" {
+		t.Fatal("CI's ffmpeg has libass: captions must be burned in")
+	}
+	if err != nil {
 		if strings.Contains(err.Error(), "subtitles") && os.Getenv("TRADY_REQUIRE_FFMPEG") != "1" {
 			t.Skip("this ffmpeg has no subtitles filter (libass)")
+		}
+		t.Fatal(err)
+	}
+	got, err := Probe(context.Background(), clip)
+	if err != nil || got.DurationSec < 2.5 || got.DurationSec > 3.5 {
+		t.Fatalf("clip: %+v, %v", got, err)
+	}
+}
+
+// TestCutWithWordCaptions burns word-by-word captions with a real ffmpeg. It
+// runs where TRADY_REQUIRE_FFMPEG=1 (CI) and is skipped when ffmpeg or its
+// ass filter (libass) is missing.
+func TestCutWithWordCaptions(t *testing.T) {
+	ffmpeg, _ := LookPath()
+	if ffmpeg == "" {
+		if os.Getenv("TRADY_REQUIRE_FFMPEG") == "1" {
+			t.Fatal("ffmpeg is required here")
+		}
+		t.Skip("ffmpeg not installed")
+	}
+	dir := t.TempDir()
+	src := filepath.Join(dir, "sample.mp4")
+	gen := exec.Command(ffmpeg, "-y", "-f", "lavfi", "-i", "testsrc=size=320x240:rate=25:duration=6",
+		"-f", "lavfi", "-i", "sine=frequency=440:duration=6", "-shortest",
+		"-c:v", "libx264", "-c:a", "aac", src)
+	if b, err := gen.CombinedOutput(); err != nil {
+		t.Fatalf("make sample: %v\n%s", err, b)
+	}
+	segs := []inventory.Segment{{StartSec: 1, EndSec: 3, Text: "Hello there friend", Words: []inventory.Word{
+		{Text: "Hello", StartSec: 1, EndSec: 1.6}, {Text: "there", StartSec: 1.6, EndSec: 2.2}, {Text: "friend.", StartSec: 2.2, EndSec: 3}}}}
+	clip := filepath.Join(dir, "out", "clip.mp4")
+	caps := Captions{ASS: ASS(segs, 1, 4, 320, 240)}
+	burned, err := Cut(context.Background(), src, 1, 4, clip, caps)
+	if err == nil && !burned && os.Getenv("TRADY_REQUIRE_FFMPEG") == "1" {
+		t.Fatal("CI's ffmpeg has libass: captions must be burned in")
+	}
+	if err != nil {
+		if strings.Contains(err.Error(), "ass") && os.Getenv("TRADY_REQUIRE_FFMPEG") != "1" {
+			t.Skip("this ffmpeg has no ass filter (libass)")
 		}
 		t.Fatal(err)
 	}

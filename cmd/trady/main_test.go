@@ -125,7 +125,11 @@ func TestEndToEnd(t *testing.T) {
 	r.fail("CONFLICT", 8, "project", "create", "ep1", "--name", "cuts")
 	r.fail("NOT_FOUND", 3, "project", "create", "nope", "--name", "x")
 
-	r.ok("project", "run", "cuts", "--out", filepath.Join(home, "out"))
+	// the file is not a video, so no clip renders: the job fails and says so
+	r.fail("RENDER_FAILED", 1, "project", "run", "cuts", "--out", filepath.Join(home, "out"))
+	if e := r.ok("job", "list"); !bytes.Contains(e.Data, []byte(`"status":"failed"`)) || !bytes.Contains(e.Data, []byte("0 of ")) {
+		t.Fatalf("job list after a run with no clip: %s", e.Data)
+	}
 	if n := count(t, r.ok("moment", "list", "cuts")); n == 0 {
 		t.Fatal("moment list: want at least one moment")
 	}
@@ -137,7 +141,7 @@ func TestEndToEnd(t *testing.T) {
 
 	// running again replaces the moments instead of adding more
 	before := count(t, r.ok("moment", "list", "cuts"))
-	r.ok("project", "run", "cuts", "--out", filepath.Join(home, "out"))
+	r.fail("RENDER_FAILED", 1, "project", "run", "cuts", "--out", filepath.Join(home, "out"))
 	if after := count(t, r.ok("moment", "list", "cuts")); after != before {
 		t.Fatalf("second run: %d moments, want %d", after, before)
 	}

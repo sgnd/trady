@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/sgnd/trady/internal/inventory"
@@ -75,47 +76,75 @@ func Probe(ctx context.Context, path string) (inventory.Source, error) {
 	return out, nil
 }
 
-// Cut extracts [start,end) seconds to outPath as MP4 (re-encode for reliability).
-// When srt is not empty, the captions are burned into the picture.
-func Cut(ctx context.Context, src string, start, end float64, outPath, srt string) error {
+// Captions are what gets burned into a clip. ASS (word by word) is used when
+// it is not empty, else SRT (one line per spoken segment), else nothing.
+type Captions struct {
+	ASS string
+	SRT string
+}
+
+// Cut extracts [start,end) seconds to outPath as MP4 (re-encode for reliability)
+// and burns in the captions.
+func Cut(ctx context.Context, src string, start, end float64, outPath string, caps Captions) (bool, error) {
 	ffmpeg, _ := LookPath()
 	if ffmpeg == "" {
-		return fmt.Errorf("ffmpeg not found in PATH")
+		return false, fmt.Errorf("ffmpeg not found in PATH")
 	}
 	if end <= start {
-		return fmt.Errorf("end must be after start")
+		return false, fmt.Errorf("end must be after start")
 	}
 	if err := os.MkdirAll(filepath.Dir(outPath), 0o755); err != nil {
-		return err
+		return false, err
 	}
 	absOut, err := filepath.Abs(outPath)
 	if err != nil {
-		return err
+		return false, err
 	}
 	args := []string{
 		"-y", "-ss", fmt.Sprintf("%.3f", start), "-i", src,
 		"-t", fmt.Sprintf("%.3f", end-start),
 	}
 	dir := ""
-	if srt != "" {
+	burned := false
+	if (caps.ASS != "" || caps.SRT != "") && !CanBurnCaptions(ctx) {
+		// No libass: cut without burned captions and keep them beside the clip.
+		if caps.SRT != "" {
+			if err := os.WriteFile(strings.TrimSuffix(absOut, filepath.Ext(absOut))+".srt", []byte(caps.SRT), 0o600); err != nil {
+				return false, err
+			}
+		}
+		caps = Captions{}
+	}
+	if caps.ASS != "" || caps.SRT != "" {
+		burned = true
 		// ffmpeg filter arguments need escaping for most paths, so the
 		// captions file gets a plain name in its own folder instead.
 		dir, err = os.MkdirTemp("", "trady-captions-")
 		if err != nil {
-			return err
+			return false, err
 		}
 		defer os.RemoveAll(dir)
-		if err := os.WriteFile(filepath.Join(dir, "captions.srt"), []byte(srt), 0o600); err != nil {
-			return err
+		if caps.ASS != "" {
+			if err := os.WriteFile(filepath.Join(dir, "captions.ass"), []byte(caps.ASS), 0o600); err != nil {
+				return false, err
+			}
+			args = append(args, "-vf", "ass=captions.ass")
+		} else {
+			if err := os.WriteFile(filepath.Join(dir, "captions.srt"), []byte(caps.SRT), 0o600); err != nil {
+				return false, err
+			}
+			args = append(args, "-vf", "subtitles=captions.srt:force_style='FontSize=18,Outline=2,MarginV=40'")
 		}
-		args = append(args, "-vf", "subtitles=captions.srt:force_style='FontSize=18,Outline=2,MarginV=40'")
 	}
 	args = append(args,
 		"-c:v", "libx264", "-preset", "veryfast", "-crf", "23",
 		"-c:a", "aac", "-movflags", "+faststart",
 		absOut,
 	)
-	return run(ctx, dir, ffmpeg, args...)
+	if err := run(ctx, dir, ffmpeg, args...); err != nil {
+		return false, err
+	}
+	return burned, nil
 }
 
 // SuggestMoments builds evenly spaced placeholder moments when AI scoring is not available.
@@ -161,4 +190,38 @@ func SuggestMoments(projectID string, durationSec float64) []inventory.Moment {
 // Default timeout for probe/cut.
 func WithTimeout(parent context.Context) (context.Context, context.CancelFunc) {
 	return context.WithTimeout(parent, 10*time.Minute)
+}
+
+var (
+	filtersMu sync.Mutex
+	filters   *bool
+)
+
+// CanBurnCaptions reports whether ffmpeg has the ass and subtitles filters
+// (libass). The answer is kept for the life of the process.
+func CanBurnCaptions(ctx context.Context) bool {
+	filtersMu.Lock()
+	defer filtersMu.Unlock()
+	if filters != nil {
+		return *filters
+	}
+	ok := false
+	if ffmpeg, _ := LookPath(); ffmpeg != "" {
+		b, err := exec.CommandContext(ctx, ffmpeg, "-hide_banner", "-filters").Output() // #nosec G204 -- ffmpeg from PATH, fixed arguments
+		if err == nil {
+			ok = hasFilter(string(b), "ass") && hasFilter(string(b), "subtitles")
+		}
+	}
+	filters = &ok
+	return ok
+}
+
+// hasFilter finds name as the second field of a line of `ffmpeg -filters`.
+func hasFilter(list, name string) bool {
+	for _, line := range strings.Split(list, "\n") {
+		if f := strings.Fields(line); len(f) >= 2 && f[1] == name {
+			return true
+		}
+	}
+	return false
 }

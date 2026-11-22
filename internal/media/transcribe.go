@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"unicode"
 
 	"github.com/sgnd/trady/internal/home"
 	"github.com/sgnd/trady/internal/inventory"
@@ -25,6 +26,19 @@ func WhisperPath() string {
 		}
 	}
 	return ""
+}
+
+// ModelTarget is the file trady looks for the model in, even when it is not
+// there yet: TRADY_WHISPER_MODEL, or TRADY_HOME/models/ggml-base.bin.
+func ModelTarget() string {
+	if p := os.Getenv("TRADY_WHISPER_MODEL"); p != "" {
+		return p
+	}
+	d, err := home.Dir()
+	if err != nil {
+		return filepath.Join("~", ".trady", "models", DefaultModel)
+	}
+	return filepath.Join(d, "models", DefaultModel)
 }
 
 // ModelPath is TRADY_WHISPER_MODEL, or TRADY_HOME/models/ggml-base.bin.
@@ -70,7 +84,7 @@ func Transcribe(ctx context.Context, src string) ([]inventory.Segment, string, e
 		return nil, "", err
 	}
 	base := filepath.Join(dir, "out")
-	if err := run(ctx, "", whisper, "-m", model, "-f", wav, "-l", "auto", "-oj", "-of", base); err != nil {
+	if err := run(ctx, "", whisper, "-m", model, "-f", wav, "-l", "auto", "-ml", "1", "-sow", "-oj", "-of", base); err != nil {
 		return nil, "", err
 	}
 	b, err := os.ReadFile(base + ".json")
@@ -82,6 +96,9 @@ func Transcribe(ctx context.Context, src string) ([]inventory.Segment, string, e
 }
 
 // ParseWhisperJSON reads the JSON file that whisper-cli writes with -oj.
+// With -ml 1 -sow every entry is one word: the words are grouped into
+// sentences, and each segment keeps its word times. Without word entries
+// each entry is one segment and has no word times.
 func ParseWhisperJSON(b []byte) ([]inventory.Segment, error) {
 	var raw struct {
 		Transcription []struct {
@@ -95,19 +112,93 @@ func ParseWhisperJSON(b []byte) ([]inventory.Segment, error) {
 	if err := json.Unmarshal(b, &raw); err != nil {
 		return nil, fmt.Errorf("whisper output: %w", err)
 	}
-	segs := []inventory.Segment{}
+	var entries []inventory.Segment
+	oneWord := true
 	for _, t := range raw.Transcription {
 		text := strings.TrimSpace(t.Text)
-		if text == "" || t.Offsets.To <= t.Offsets.From {
+		if text == "" || isNoiseTag(text) {
 			continue
 		}
-		segs = append(segs, inventory.Segment{
+		if t.Offsets.To <= t.Offsets.From && !isPunctuation(text) {
+			continue
+		}
+		if strings.ContainsAny(text, " \t") {
+			oneWord = false
+		}
+		entries = append(entries, inventory.Segment{
 			StartSec: float64(t.Offsets.From) / 1000,
 			EndSec:   float64(t.Offsets.To) / 1000,
 			Text:     text,
 		})
 	}
+	if oneWord && len(entries) > 0 {
+		return groupWords(entries), nil
+	}
+	segs := []inventory.Segment{}
+	for _, e := range entries {
+		if e.EndSec > e.StartSec {
+			segs = append(segs, e)
+		}
+	}
 	return segs, nil
+}
+
+// whisper.cpp marks silence and sound with tags such as [_BEG_], [BLANK_AUDIO]
+// and (music): they are not speech.
+func isNoiseTag(s string) bool {
+	return len(s) > 2 && (s[0] == '[' && s[len(s)-1] == ']' || s[0] == '(' && s[len(s)-1] == ')')
+}
+
+func isPunctuation(s string) bool {
+	for _, r := range s {
+		if unicode.IsLetter(r) || unicode.IsDigit(r) {
+			return false
+		}
+	}
+	return s != ""
+}
+
+// Words break into a new segment after a sentence end, or after a pause.
+const wordPause = 1.0 // seconds
+
+// groupWords turns per-word entries into sentence segments with word times.
+// An entry that is only punctuation joins the word before it.
+func groupWords(entries []inventory.Segment) []inventory.Segment {
+	var segs []inventory.Segment
+	var cur []inventory.Word
+	flush := func() {
+		if len(cur) == 0 {
+			return
+		}
+		texts := make([]string, len(cur))
+		for i, w := range cur {
+			texts[i] = w.Text
+		}
+		segs = append(segs, inventory.Segment{StartSec: cur[0].StartSec, EndSec: cur[len(cur)-1].EndSec, Text: strings.Join(texts, " "), Words: cur})
+		cur = nil
+	}
+	for _, e := range entries {
+		if isPunctuation(e.Text) && len(cur) > 0 {
+			last := &cur[len(cur)-1]
+			last.Text += e.Text
+			if e.EndSec > last.EndSec {
+				last.EndSec = e.EndSec
+			}
+			if sentenceEnd(last.Text) {
+				flush()
+			}
+			continue
+		}
+		if len(cur) > 0 && e.StartSec-cur[len(cur)-1].EndSec > wordPause {
+			flush()
+		}
+		cur = append(cur, inventory.Word{Text: e.Text, StartSec: e.StartSec, EndSec: e.EndSec})
+		if sentenceEnd(e.Text) {
+			flush()
+		}
+	}
+	flush()
+	return segs
 }
 
 func run(ctx context.Context, dir, name string, args ...string) error {

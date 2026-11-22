@@ -51,6 +51,7 @@ type Moment struct {
 	Score     int     `json:"score"`
 	StartSec  float64 `json:"start_sec"`
 	EndSec    float64 `json:"end_sec"`
+	Picked    bool    `json:"picked,omitempty"` // set by a person or an agent with `moment set`, not scored
 }
 
 type Clip struct {
@@ -67,6 +68,14 @@ type Segment struct {
 	StartSec float64 `json:"start_sec"`
 	EndSec   float64 `json:"end_sec"`
 	Text     string  `json:"text"`
+	Words    []Word  `json:"words,omitempty"` // word times, when whisper.cpp gave them
+}
+
+// Word is one spoken word with its time in the source.
+type Word struct {
+	Text     string  `json:"text"`
+	StartSec float64 `json:"start_sec"`
+	EndSec   float64 `json:"end_sec"`
 }
 
 // Transcript is the timed text of a source, made locally by whisper.cpp.

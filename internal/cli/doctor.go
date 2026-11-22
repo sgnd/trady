@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"runtime"
 	"strings"
 
 	"github.com/sgnd/trady/internal/home"
@@ -21,11 +22,84 @@ type doctorData struct {
 	FFmpeg  string `json:"ffmpeg,omitempty"`
 	FFprobe string `json:"ffprobe,omitempty"`
 
-	Network      string   `json:"network"`
-	Whisper      string   `json:"whisper,omitempty"`
-	WhisperModel string   `json:"whisper_model,omitempty"`
-	Warnings     []string `json:"warnings,omitempty"`
-	OK           bool     `json:"ok"`
+	Network      string     `json:"network"`
+	Whisper      string     `json:"whisper,omitempty"`
+	WhisperModel string     `json:"whisper_model,omitempty"`
+	Warnings     []string   `json:"warnings,omitempty"`
+	Next         []nextStep `json:"next,omitempty"`
+	OK           bool       `json:"ok"`
+}
+
+// nextStep is the one command that fixes one missing tool. trady prints it
+// and never runs it: the person decides what gets installed.
+type nextStep struct {
+	Tool    string `json:"tool"`
+	Command string `json:"command"`
+}
+
+// tools says what doctor found. NoLibass means ffmpeg is there but has no
+// ass filter, so captions cannot be burned in.
+type tools struct{ FFmpeg, FFprobe, Whisper, Model, NoLibass bool }
+
+const modelURL = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/" + media.DefaultModel
+
+// nextSteps lists the command for each missing tool on goos, in the order to
+// run them. modelPath is where trady looks for the whisper model.
+func nextSteps(goos, modelPath string, have tools) []nextStep {
+	var steps []nextStep
+	if !have.FFmpeg || !have.FFprobe {
+		tool := "ffmpeg"
+		if have.FFmpeg {
+			tool = "ffprobe" // it comes in the same package
+		}
+		cmd := "brew install ffmpeg"
+		switch goos {
+		case "linux":
+			cmd = "sudo apt install ffmpeg"
+		case "windows":
+			cmd = "winget install Gyan.FFmpeg"
+		}
+		steps = append(steps, nextStep{tool, cmd})
+	}
+	if have.FFmpeg && have.NoLibass {
+		cmd := "install an ffmpeg built with libass; check it with: ffmpeg -filters | grep ass"
+		switch goos {
+		case "linux":
+			cmd = "sudo apt install ffmpeg (the Debian and Ubuntu package has libass)"
+		case "windows":
+			cmd = "winget install Gyan.FFmpeg (that build has libass)"
+		}
+		steps = append(steps, nextStep{"libass", cmd})
+	}
+	if !have.Whisper {
+		cmd := "brew install whisper-cpp"
+		switch goos {
+		case "linux":
+			cmd = "git clone https://github.com/ggml-org/whisper.cpp && cd whisper.cpp && cmake -B build && cmake --build build -j --config Release, then put build/bin/whisper-cli on your PATH"
+		case "windows":
+			cmd = "download whisper-bin-x64.zip from https://github.com/ggml-org/whisper.cpp/releases, unzip it, and put whisper-cli.exe in a folder on your PATH"
+		}
+		steps = append(steps, nextStep{"whisper-cli", cmd})
+	}
+	if !have.Model {
+		q := shellQuote(modelPath)
+		cmd := "mkdir -p " + shellQuote(modelDir(modelPath)) + " && curl -fL -o " + q + " " + modelURL
+		if goos == "windows" {
+			cmd = "curl.exe -fL -o " + q + " " + modelURL
+		}
+		steps = append(steps, nextStep{"whisper model", cmd})
+	}
+	return steps
+}
+
+// shellQuote quotes s for a shell only when it needs it.
+func shellQuote(s string) string {
+	if strings.IndexFunc(s, func(r rune) bool {
+		return !(r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' || r >= '0' && r <= '9' || strings.ContainsRune("/._-:~", r))
+	}) < 0 {
+		return s
+	}
+	return `"` + strings.NewReplacer(`"`, `\"`, "$", `\$`, "`", "\\`").Replace(s) + `"`
 }
 
 func (d doctorData) Text() string {
@@ -42,6 +116,9 @@ func (d doctorData) Text() string {
 	fmt.Fprintf(&b, "whisper model: %s\n", emptyDash(d.WhisperModel))
 	for _, w := range d.Warnings {
 		fmt.Fprintf(&b, "warning: %s\n", w)
+	}
+	for _, n := range d.Next {
+		fmt.Fprintf(&b, "next: %s   (%s)\n", n.Command, n.Tool)
 	}
 	if d.OK {
 		b.WriteString("ok\n")
@@ -79,6 +156,14 @@ func cmdDoctor(args []string) int {
 	if d.Whisper == "" || d.WhisperModel == "" {
 		d.Warnings = append(d.Warnings, "install whisper-cli and a model for captions: see docs/features/captions.md")
 	}
+	have := tools{
+		FFmpeg: ffmpeg != "", FFprobe: ffprobe != "", Whisper: d.Whisper != "", Model: d.WhisperModel != "",
+		NoLibass: ffmpeg != "" && !media.CanBurnCaptions(ctx),
+	}
+	if w := libassWarning(have); w != "" {
+		d.Warnings = append(d.Warnings, w)
+	}
+	d.Next = nextSteps(runtime.GOOS, media.ModelTarget(), have)
 
 	path := store.Path(store.DBFile)
 	meta, err := sealdb.Peek(ctx, path)
@@ -110,3 +195,21 @@ func cmdDoctor(args []string) int {
 // networkNote is what doctor says about the network. A test in cmd/trady
 // keeps network packages out of the binary, so this stays true.
 const networkNote = "none: trady makes no network calls; ffmpeg, ffprobe and whisper-cli run on local files"
+
+// modelDir is the folder of the model path, cut at its last separator of
+// either kind, so the command keeps the path's own separators.
+func modelDir(p string) string {
+	i := strings.LastIndexAny(p, `/\\`)
+	if i < 0 {
+		return "."
+	}
+	return p[:i]
+}
+
+// libassWarning says what an ffmpeg without the ass filter means for clips.
+func libassWarning(have tools) string {
+	if !have.FFmpeg || !have.NoLibass {
+		return ""
+	}
+	return "this ffmpeg has no ass filter (libass): captions are not burned into clips; they are saved as an .srt beside each clip"
+}

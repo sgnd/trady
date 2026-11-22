@@ -126,8 +126,9 @@ func projectRun(ctx context.Context, args []string) int {
 		return out.P.Fail(mapErr(err))
 	}
 
-	// a new run replaces the moments and clips of the last one
-	if err := inventory.ClearProjectOutput(ctx, p.ID); err != nil {
+	// a new run replaces the clips and the scored moments of the last one;
+	// the moments picked with `moment set` stay
+	if err := inventory.ClearSuggested(ctx, p.ID); err != nil {
 		return failJob(ctx, job, p, err)
 	}
 
@@ -138,19 +139,9 @@ func projectRun(ctx context.Context, args []string) int {
 	job.Message = "selecting moments"
 	_ = inventory.SaveJob(ctx, job)
 
-	suggested := media.ScoreMoments(p.ID, segs, media.MomentCount(src.DurationSec))
-	selection := "scored from the transcript"
-	if len(suggested) == 0 {
-		suggested = media.SuggestMoments(p.ID, src.DurationSec)
-		selection = "evenly spaced placeholders (no transcript with speech)"
-	}
-	var moments []inventory.Moment
-	for _, m := range suggested {
-		saved, err := inventory.AddMoment(ctx, m)
-		if err != nil {
-			return failJob(ctx, job, p, err)
-		}
-		moments = append(moments, saved)
+	moments, selection, err := chooseMoments(ctx, p, src, segs)
+	if err != nil {
+		return failJob(ctx, job, p, err)
 	}
 
 	p.Status = "rendering"
@@ -173,7 +164,10 @@ func projectRun(ctx context.Context, args []string) int {
 			c.Path = ""
 		} else {
 			pctx, cancel := media.WithTimeout(ctx)
-			err := media.Cut(pctx, src.Path, m.StartSec, m.EndSec, clipPath, media.SRT(segs, m.StartSec, m.EndSec))
+			burned, err := media.Cut(pctx, src.Path, m.StartSec, m.EndSec, clipPath, media.Captions{
+				ASS: media.ASS(segs, m.StartSec, m.EndSec, src.Width, src.Height),
+				SRT: media.SRT(segs, m.StartSec, m.EndSec),
+			})
 			cancel()
 			if err != nil {
 				c.Status = "failed"
@@ -182,6 +176,10 @@ func projectRun(ctx context.Context, args []string) int {
 				c.Status = "rendered"
 				c.Path = clipPath
 				rendered++
+				if len(segs) > 0 && !burned {
+					c.Note = "captions not burned in (this ffmpeg has no libass); saved as " + strings.TrimSuffix(clipPath, ".mp4") + ".srt"
+					captionNote = "saved as an .srt beside each clip: this ffmpeg has no ass filter (libass), so captions are not burned in; see `trady doctor`"
+				}
 			}
 		}
 		if _, err := inventory.AddClip(ctx, c); err != nil {
@@ -190,13 +188,22 @@ func projectRun(ctx context.Context, args []string) int {
 	}
 
 	now := time.Now().UTC()
-	job.Status = "done"
 	job.FinishedAt = &now
-	job.Message = fmt.Sprintf("%d moments, %d clips rendered", len(moments), rendered)
+	job.Message = fmt.Sprintf("%d of %d clips rendered", rendered, len(moments))
+	switch {
+	case rendered == len(moments) || ffmpeg == "": // no ffmpeg: moments kept, clips skipped on purpose
+		job.Status, p.Status, p.Error = "done", "done", ""
+	case rendered == 0:
+		job.Status, p.Status, p.Error = "failed", "failed", job.Message
+	default:
+		job.Status, p.Status, p.Error = "partial", "partial", job.Message
+	}
 	_ = inventory.SaveJob(ctx, job)
-	p.Status = "done"
-	p.Error = ""
 	_ = inventory.SaveProject(ctx, p)
+	if rendered < len(moments) && ffmpeg != "" {
+		return out.P.Fail(out.Errf(out.ExitError, "RENDER_FAILED", "see `trady clip list "+p.Name+"` for why each clip failed",
+			"%s", job.Message))
+	}
 
 	out.P.Print(map[string]any{
 		"project":   p,
@@ -214,7 +221,7 @@ func projectRun(ctx context.Context, args []string) int {
 // whisper.cpp and a model are on this machine. The note says what happened.
 func captionsFor(ctx context.Context, src inventory.Source, job *inventory.Job) ([]inventory.Segment, string) {
 	if t, err := inventory.GetTranscript(ctx, src.ID); err == nil {
-		return t.Segments, fmt.Sprintf("burned in from the saved transcript (%d segments)", len(t.Segments))
+		return t.Segments, captionNote("from the saved transcript", t.Segments)
 	}
 	if media.WhisperPath() == "" || media.ModelPath() == "" {
 		return nil, "off: install whisper-cli and a model to burn in captions (see `trady doctor`)"
@@ -230,7 +237,7 @@ func captionsFor(ctx context.Context, src inventory.Source, job *inventory.Job) 
 	if _, err := inventory.SaveTranscript(ctx, src.ID, model, segs); err != nil {
 		return nil, "off: could not save the transcript: " + err.Error()
 	}
-	return segs, fmt.Sprintf("burned in from a new transcript (%d segments)", len(segs))
+	return segs, captionNote("from a new transcript", segs)
 }
 
 func failJob(ctx context.Context, job inventory.Job, p inventory.Project, err error) int {
@@ -243,4 +250,49 @@ func failJob(ctx context.Context, job inventory.Job, p inventory.Project, err er
 	p.Error = err.Error()
 	_ = inventory.SaveProject(ctx, p)
 	return out.P.Fail(mapErr(err))
+}
+
+// chooseMoments returns the moments to cut: the ones picked with
+// `moment set` when there are any, else the best windows of the transcript,
+// else evenly spaced placeholders. The note says which.
+func chooseMoments(ctx context.Context, p inventory.Project, src inventory.Source, segs []inventory.Segment) ([]inventory.Moment, string, error) {
+	existing, err := inventory.ListMoments(ctx, p.ID)
+	if err != nil {
+		return nil, "", err
+	}
+	var picks []inventory.Moment
+	for _, m := range existing {
+		if m.Picked {
+			picks = append(picks, m)
+		}
+	}
+	if len(picks) > 0 {
+		return picks, "picked with `trady moment set`", nil
+	}
+	suggested := media.ScoreMoments(p.ID, segs, media.MomentCount(src.DurationSec))
+	selection := "scored from the transcript"
+	if len(suggested) == 0 {
+		suggested = media.SuggestMoments(p.ID, src.DurationSec)
+		selection = "evenly spaced placeholders (no transcript with speech)"
+	}
+	var moments []inventory.Moment
+	for _, m := range suggested {
+		saved, err := inventory.AddMoment(ctx, m)
+		if err != nil {
+			return nil, "", err
+		}
+		moments = append(moments, saved)
+	}
+	return moments, selection, nil
+}
+
+// captionNote says how the captions are made: word by word when the
+// transcript has word times, else one line per segment (an older transcript).
+func captionNote(from string, segs []inventory.Segment) string {
+	for _, s := range segs {
+		if len(s.Words) > 0 {
+			return fmt.Sprintf("burned in word by word, %s (%d segments)", from, len(segs))
+		}
+	}
+	return fmt.Sprintf("burned in one line per segment, %s (%d segments); run `trady source transcribe` again for word by word", from, len(segs))
 }

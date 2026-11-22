@@ -42,17 +42,19 @@ jobs:
         with:
           go-version-file: go.mod
       - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg espeak-ng cmake
-      # the build and the tiny model (about 75 MB) are cached, so most runs download nothing
+      # the build and the tiny model (about 75 MB) are cached, so most runs download nothing.
+      # GGML_NATIVE=OFF: a cached build must run on any runner CPU (a native build
+      # crashed with "illegal instruction" on a runner without the same CPU features)
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/whisper
-          key: whisper-${{ env.WHISPER_COMMIT }}-tiny-${{ runner.os }}
+          key: whisper-${{ env.WHISPER_COMMIT }}-portable-tiny-${{ runner.os }}
       - name: Build whisper.cpp and get the tiny model
         run: |
           if [ ! -x ~/whisper/whisper-cli ]; then
             git clone --depth 1 --branch "$WHISPER_TAG" https://github.com/ggml-org/whisper.cpp.git /tmp/wcpp
             [ "$(git -C /tmp/wcpp rev-parse HEAD)" = "$WHISPER_COMMIT" ] || { echo "::error::whisper.cpp $WHISPER_TAG is not $WHISPER_COMMIT"; exit 1; }
-            cmake -S /tmp/wcpp -B /tmp/wcpp/build -DBUILD_SHARED_LIBS=OFF -DCMAKE_BUILD_TYPE=Release
+            cmake -S /tmp/wcpp -B /tmp/wcpp/build -DBUILD_SHARED_LIBS=OFF -DCMAKE_BUILD_TYPE=Release -DGGML_NATIVE=OFF
             cmake --build /tmp/wcpp/build -j --target whisper-cli
             mkdir -p ~/whisper && cp /tmp/wcpp/build/bin/whisper-cli ~/whisper/
             curl -fsSL -o ~/whisper/ggml-tiny.bin https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.bin
