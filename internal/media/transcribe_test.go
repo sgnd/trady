@@ -74,7 +74,11 @@ func TestCutWithCaptions(t *testing.T) {
 	}
 	clip := filepath.Join(dir, "out", "clip.mp4")
 	srt := SRT([]inventory.Segment{{StartSec: 1, EndSec: 3, Text: "Hello: it's 'quoted'"}}, 1, 4)
-	if err := Cut(context.Background(), src, 1, 4, clip, Captions{SRT: srt}); err != nil {
+	burned, err := Cut(context.Background(), src, 1, 4, clip, Captions{SRT: srt})
+	if err == nil && !burned && os.Getenv("TRADY_REQUIRE_FFMPEG") == "1" {
+		t.Fatal("CI's ffmpeg has libass: captions must be burned in")
+	}
+	if err != nil {
 		if strings.Contains(err.Error(), "subtitles") && os.Getenv("TRADY_REQUIRE_FFMPEG") != "1" {
 			t.Skip("this ffmpeg has no subtitles filter (libass)")
 		}
@@ -109,7 +113,11 @@ func TestCutWithWordCaptions(t *testing.T) {
 		{Text: "Hello", StartSec: 1, EndSec: 1.6}, {Text: "there", StartSec: 1.6, EndSec: 2.2}, {Text: "friend.", StartSec: 2.2, EndSec: 3}}}}
 	clip := filepath.Join(dir, "out", "clip.mp4")
 	caps := Captions{ASS: ASS(segs, 1, 4, 320, 240)}
-	if err := Cut(context.Background(), src, 1, 4, clip, caps); err != nil {
+	burned, err := Cut(context.Background(), src, 1, 4, clip, caps)
+	if err == nil && !burned && os.Getenv("TRADY_REQUIRE_FFMPEG") == "1" {
+		t.Fatal("CI's ffmpeg has libass: captions must be burned in")
+	}
+	if err != nil {
 		if strings.Contains(err.Error(), "ass") && os.Getenv("TRADY_REQUIRE_FFMPEG") != "1" {
 			t.Skip("this ffmpeg has no ass filter (libass)")
 		}

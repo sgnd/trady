@@ -164,7 +164,7 @@ func projectRun(ctx context.Context, args []string) int {
 			c.Path = ""
 		} else {
 			pctx, cancel := media.WithTimeout(ctx)
-			err := media.Cut(pctx, src.Path, m.StartSec, m.EndSec, clipPath, media.Captions{
+			burned, err := media.Cut(pctx, src.Path, m.StartSec, m.EndSec, clipPath, media.Captions{
 				ASS: media.ASS(segs, m.StartSec, m.EndSec, src.Width, src.Height),
 				SRT: media.SRT(segs, m.StartSec, m.EndSec),
 			})
@@ -176,6 +176,10 @@ func projectRun(ctx context.Context, args []string) int {
 				c.Status = "rendered"
 				c.Path = clipPath
 				rendered++
+				if len(segs) > 0 && !burned {
+					c.Note = "captions not burned in (this ffmpeg has no libass); saved as " + strings.TrimSuffix(clipPath, ".mp4") + ".srt"
+					captionNote = "saved as an .srt beside each clip: this ffmpeg has no ass filter (libass), so captions are not burned in; see `trady doctor`"
+				}
 			}
 		}
 		if _, err := inventory.AddClip(ctx, c); err != nil {
@@ -184,13 +188,22 @@ func projectRun(ctx context.Context, args []string) int {
 	}
 
 	now := time.Now().UTC()
-	job.Status = "done"
 	job.FinishedAt = &now
-	job.Message = fmt.Sprintf("%d moments, %d clips rendered", len(moments), rendered)
+	job.Message = fmt.Sprintf("%d of %d clips rendered", rendered, len(moments))
+	switch {
+	case rendered == len(moments) || ffmpeg == "": // no ffmpeg: moments kept, clips skipped on purpose
+		job.Status, p.Status, p.Error = "done", "done", ""
+	case rendered == 0:
+		job.Status, p.Status, p.Error = "failed", "failed", job.Message
+	default:
+		job.Status, p.Status, p.Error = "partial", "partial", job.Message
+	}
 	_ = inventory.SaveJob(ctx, job)
-	p.Status = "done"
-	p.Error = ""
 	_ = inventory.SaveProject(ctx, p)
+	if rendered < len(moments) && ffmpeg != "" {
+		return out.P.Fail(out.Errf(out.ExitError, "RENDER_FAILED", "see `trady clip list "+p.Name+"` for why each clip failed",
+			"%s", job.Message))
+	}
 
 	out.P.Print(map[string]any{
 		"project":   p,

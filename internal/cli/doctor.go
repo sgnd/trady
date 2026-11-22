@@ -37,7 +37,9 @@ type nextStep struct {
 	Command string `json:"command"`
 }
 
-type tools struct{ FFmpeg, FFprobe, Whisper, Model bool }
+// tools says what doctor found. NoLibass means ffmpeg is there but has no
+// ass filter, so captions cannot be burned in.
+type tools struct{ FFmpeg, FFprobe, Whisper, Model, NoLibass bool }
 
 const modelURL = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/" + media.DefaultModel
 
@@ -58,6 +60,16 @@ func nextSteps(goos, modelPath string, have tools) []nextStep {
 			cmd = "winget install Gyan.FFmpeg"
 		}
 		steps = append(steps, nextStep{tool, cmd})
+	}
+	if have.FFmpeg && have.NoLibass {
+		cmd := "install an ffmpeg built with libass, for example: brew tap homebrew-ffmpeg/ffmpeg && brew install homebrew-ffmpeg/ffmpeg/ffmpeg"
+		switch goos {
+		case "linux":
+			cmd = "sudo apt install ffmpeg (the Debian and Ubuntu package has libass)"
+		case "windows":
+			cmd = "winget install Gyan.FFmpeg (that build has libass)"
+		}
+		steps = append(steps, nextStep{"libass", cmd})
 	}
 	if !have.Whisper {
 		cmd := "brew install whisper-cpp"
@@ -144,9 +156,14 @@ func cmdDoctor(args []string) int {
 	if d.Whisper == "" || d.WhisperModel == "" {
 		d.Warnings = append(d.Warnings, "install whisper-cli and a model for captions: see docs/features/captions.md")
 	}
-	d.Next = nextSteps(runtime.GOOS, media.ModelTarget(), tools{
+	have := tools{
 		FFmpeg: ffmpeg != "", FFprobe: ffprobe != "", Whisper: d.Whisper != "", Model: d.WhisperModel != "",
-	})
+		NoLibass: ffmpeg != "" && !media.CanBurnCaptions(ctx),
+	}
+	if w := libassWarning(have); w != "" {
+		d.Warnings = append(d.Warnings, w)
+	}
+	d.Next = nextSteps(runtime.GOOS, media.ModelTarget(), have)
 
 	path := store.Path(store.DBFile)
 	meta, err := sealdb.Peek(ctx, path)
@@ -187,4 +204,12 @@ func modelDir(p string) string {
 		return "."
 	}
 	return p[:i]
+}
+
+// libassWarning says what an ffmpeg without the ass filter means for clips.
+func libassWarning(have tools) string {
+	if !have.FFmpeg || !have.NoLibass {
+		return ""
+	}
+	return "this ffmpeg has no ass filter (libass): captions are not burned into clips; they are saved as an .srt beside each clip"
 }
