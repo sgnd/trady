@@ -58,3 +58,18 @@ func TestShellQuote(t *testing.T) {
 		}
 	}
 }
+
+// The model folder comes from the model path whatever the path's separators,
+// so a Linux path stays a Linux path when the test runs on Windows.
+func TestModelFolderKeepsTheSeparators(t *testing.T) {
+	cases := map[string]string{
+		"/home/me/.trady/models/ggml-base.bin":    "/home/me/.trady/models",
+		`C:\Users\me\.trady\models\ggml-base.bin`: `C:\Users\me\.trady\models`,
+		"ggml-base.bin": ".",
+	}
+	for in, want := range cases {
+		if got := modelDir(in); got != want {
+			t.Errorf("modelDir(%q) = %q, want %q", in, got, want)
+		}
+	}
+}

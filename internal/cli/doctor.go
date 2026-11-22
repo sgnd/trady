@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path/filepath"
 	"runtime"
 	"strings"
 
@@ -72,7 +71,7 @@ func nextSteps(goos, modelPath string, have tools) []nextStep {
 	}
 	if !have.Model {
 		q := shellQuote(modelPath)
-		cmd := "mkdir -p " + shellQuote(filepath.Dir(modelPath)) + " && curl -fL -o " + q + " " + modelURL
+		cmd := "mkdir -p " + shellQuote(modelDir(modelPath)) + " && curl -fL -o " + q + " " + modelURL
 		if goos == "windows" {
 			cmd = "curl.exe -fL -o " + q + " " + modelURL
 		}
@@ -179,3 +178,13 @@ func cmdDoctor(args []string) int {
 // networkNote is what doctor says about the network. A test in cmd/trady
 // keeps network packages out of the binary, so this stays true.
 const networkNote = "none: trady makes no network calls; ffmpeg, ffprobe and whisper-cli run on local files"
+
+// modelDir is the folder of the model path, cut at its last separator of
+// either kind, so the command keeps the path's own separators.
+func modelDir(p string) string {
+	i := strings.LastIndexAny(p, `/\\`)
+	if i < 0 {
+		return "."
+	}
+	return p[:i]
+}

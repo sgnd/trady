@@ -36,16 +36,20 @@ func srtTime(sec float64) string {
 }
 
 // plainCaption drops the characters libass reads as style tags ({\...} and
-// <font>), so words in a recording cannot restyle or hide the captions.
+// <font>), so words in a recording cannot restyle or hide the captions, and
+// turns line breaks and other control characters into spaces, so a word
+// cannot end a caption line or start a new line of the captions file.
 func plainCaption(s string) string {
 	s = strings.Map(func(r rune) rune {
-		switch r {
-		case '{', '}', '<', '>', '\\':
+		switch {
+		case r == '{' || r == '}' || r == '<' || r == '>' || r == '\\':
 			return -1
+		case r < 0x20 || r == 0x7f || r == '\u2028' || r == '\u2029':
+			return ' '
 		}
 		return r
 	}, s)
-	return strings.TrimSpace(s)
+	return strings.Join(strings.Fields(s), " ")
 }
 
 var styleBlocks = regexp.MustCompile(`\{[^}]*\}|<[^>]*>`)

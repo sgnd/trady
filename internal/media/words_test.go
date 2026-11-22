@@ -111,3 +111,28 @@ func TestASSScalesTextWithTheVideo(t *testing.T) {
 		t.Error("an unknown size falls back to 1920x1080")
 	}
 }
+
+// A word or a segment holding a line break must not end the caption line:
+// in an ASS file the next line could be read as a new Style.
+func TestCaptionsDropLineBreaksAndControlCharacters(t *testing.T) {
+	evil := "a\nStyle: Default,Arial,400,&H00FFFFFF\r\n\u2028b\u2029c\x07d"
+	seg := inventory.Segment{StartSec: 0, EndSec: 2, Text: evil, Words: []inventory.Word{{Text: evil, StartSec: 0, EndSec: 2}}}
+
+	ass := ASS([]inventory.Segment{seg}, 0, 2, 1920, 1080)
+	if strings.Count(ass, "\nStyle:") != 1 {
+		t.Errorf("a word started a second Style line:\n%s", ass)
+	}
+	dialogue := ass[strings.Index(ass, "Dialogue:"):]
+	if strings.Count(strings.TrimRight(dialogue, "\n"), "\n") != 0 {
+		t.Errorf("the dialogue spans several lines: %q", dialogue)
+	}
+	if strings.ContainsAny(dialogue, "\x07\u2028\u2029\r") {
+		t.Errorf("control characters left: %q", dialogue)
+	}
+
+	srt := SRT([]inventory.Segment{seg}, 0, 2)
+	blocks := strings.Split(strings.TrimSpace(srt), "\n\n")
+	if len(blocks) != 1 || strings.Count(blocks[0], "\n") != 2 {
+		t.Errorf("the SRT block was broken: %q", srt)
+	}
+}
