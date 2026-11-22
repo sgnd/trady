@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/sgnd/trady/internal/home"
@@ -21,11 +23,72 @@ type doctorData struct {
 	FFmpeg  string `json:"ffmpeg,omitempty"`
 	FFprobe string `json:"ffprobe,omitempty"`
 
-	Network      string   `json:"network"`
-	Whisper      string   `json:"whisper,omitempty"`
-	WhisperModel string   `json:"whisper_model,omitempty"`
-	Warnings     []string `json:"warnings,omitempty"`
-	OK           bool     `json:"ok"`
+	Network      string     `json:"network"`
+	Whisper      string     `json:"whisper,omitempty"`
+	WhisperModel string     `json:"whisper_model,omitempty"`
+	Warnings     []string   `json:"warnings,omitempty"`
+	Next         []nextStep `json:"next,omitempty"`
+	OK           bool       `json:"ok"`
+}
+
+// nextStep is the one command that fixes one missing tool. trady prints it
+// and never runs it: the person decides what gets installed.
+type nextStep struct {
+	Tool    string `json:"tool"`
+	Command string `json:"command"`
+}
+
+type tools struct{ FFmpeg, FFprobe, Whisper, Model bool }
+
+const modelURL = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/" + media.DefaultModel
+
+// nextSteps lists the command for each missing tool on goos, in the order to
+// run them. modelPath is where trady looks for the whisper model.
+func nextSteps(goos, modelPath string, have tools) []nextStep {
+	var steps []nextStep
+	if !have.FFmpeg || !have.FFprobe {
+		tool := "ffmpeg"
+		if have.FFmpeg {
+			tool = "ffprobe" // it comes in the same package
+		}
+		cmd := "brew install ffmpeg"
+		switch goos {
+		case "linux":
+			cmd = "sudo apt install ffmpeg"
+		case "windows":
+			cmd = "winget install Gyan.FFmpeg"
+		}
+		steps = append(steps, nextStep{tool, cmd})
+	}
+	if !have.Whisper {
+		cmd := "brew install whisper-cpp"
+		switch goos {
+		case "linux":
+			cmd = "git clone https://github.com/ggml-org/whisper.cpp && cd whisper.cpp && cmake -B build && cmake --build build -j --config Release, then put build/bin/whisper-cli on your PATH"
+		case "windows":
+			cmd = "download whisper-bin-x64.zip from https://github.com/ggml-org/whisper.cpp/releases, unzip it, and put whisper-cli.exe in a folder on your PATH"
+		}
+		steps = append(steps, nextStep{"whisper-cli", cmd})
+	}
+	if !have.Model {
+		q := shellQuote(modelPath)
+		cmd := "mkdir -p " + shellQuote(filepath.Dir(modelPath)) + " && curl -fL -o " + q + " " + modelURL
+		if goos == "windows" {
+			cmd = "curl.exe -fL -o " + q + " " + modelURL
+		}
+		steps = append(steps, nextStep{"whisper model", cmd})
+	}
+	return steps
+}
+
+// shellQuote quotes s for a shell only when it needs it.
+func shellQuote(s string) string {
+	if strings.IndexFunc(s, func(r rune) bool {
+		return !(r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' || r >= '0' && r <= '9' || strings.ContainsRune("/._-:~", r))
+	}) < 0 {
+		return s
+	}
+	return `"` + strings.NewReplacer(`"`, `\"`, "$", `\$`, "`", "\\`").Replace(s) + `"`
 }
 
 func (d doctorData) Text() string {
@@ -42,6 +105,9 @@ func (d doctorData) Text() string {
 	fmt.Fprintf(&b, "whisper model: %s\n", emptyDash(d.WhisperModel))
 	for _, w := range d.Warnings {
 		fmt.Fprintf(&b, "warning: %s\n", w)
+	}
+	for _, n := range d.Next {
+		fmt.Fprintf(&b, "next: %s   (%s)\n", n.Command, n.Tool)
 	}
 	if d.OK {
 		b.WriteString("ok\n")
@@ -79,6 +145,9 @@ func cmdDoctor(args []string) int {
 	if d.Whisper == "" || d.WhisperModel == "" {
 		d.Warnings = append(d.Warnings, "install whisper-cli and a model for captions: see docs/features/captions.md")
 	}
+	d.Next = nextSteps(runtime.GOOS, media.ModelTarget(), tools{
+		FFmpeg: ffmpeg != "", FFprobe: ffprobe != "", Whisper: d.Whisper != "", Model: d.WhisperModel != "",
+	})
 
 	path := store.Path(store.DBFile)
 	meta, err := sealdb.Peek(ctx, path)

@@ -27,6 +27,19 @@ func WhisperPath() string {
 	return ""
 }
 
+// ModelTarget is the file trady looks for the model in, even when it is not
+// there yet: TRADY_WHISPER_MODEL, or TRADY_HOME/models/ggml-base.bin.
+func ModelTarget() string {
+	if p := os.Getenv("TRADY_WHISPER_MODEL"); p != "" {
+		return p
+	}
+	d, err := home.Dir()
+	if err != nil {
+		return filepath.Join("~", ".trady", "models", DefaultModel)
+	}
+	return filepath.Join(d, "models", DefaultModel)
+}
+
 // ModelPath is TRADY_WHISPER_MODEL, or TRADY_HOME/models/ggml-base.bin.
 // It returns "" when the file is not there.
 func ModelPath() string {
