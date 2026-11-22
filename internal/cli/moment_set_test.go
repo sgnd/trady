@@ -114,3 +114,15 @@ func TestPickedMomentsReplaceScoring(t *testing.T) {
 		t.Errorf("selection note %q, want %q", how, want)
 	}
 }
+
+func TestCaptionNoteSaysWhichStyle(t *testing.T) {
+	words := []inventory.Segment{{Text: "hi", Words: []inventory.Word{{Text: "hi", EndSec: 1}}}}
+	lines := []inventory.Segment{{Text: "hi"}}
+	if got := captionNote("from the saved transcript", words); got != "burned in word by word, from the saved transcript (1 segments)" {
+		t.Errorf("words: %q", got)
+	}
+	got := captionNote("from the saved transcript", lines)
+	if want := "burned in one line per segment, from the saved transcript (1 segments); run `trady source transcribe` again for word by word"; got != want {
+		t.Errorf("lines: %q", got)
+	}
+}

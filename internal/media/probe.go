@@ -75,9 +75,16 @@ func Probe(ctx context.Context, path string) (inventory.Source, error) {
 	return out, nil
 }
 
-// Cut extracts [start,end) seconds to outPath as MP4 (re-encode for reliability).
-// When srt is not empty, the captions are burned into the picture.
-func Cut(ctx context.Context, src string, start, end float64, outPath, srt string) error {
+// Captions are what gets burned into a clip. ASS (word by word) is used when
+// it is not empty, else SRT (one line per spoken segment), else nothing.
+type Captions struct {
+	ASS string
+	SRT string
+}
+
+// Cut extracts [start,end) seconds to outPath as MP4 (re-encode for reliability)
+// and burns in the captions.
+func Cut(ctx context.Context, src string, start, end float64, outPath string, caps Captions) error {
 	ffmpeg, _ := LookPath()
 	if ffmpeg == "" {
 		return fmt.Errorf("ffmpeg not found in PATH")
@@ -97,7 +104,7 @@ func Cut(ctx context.Context, src string, start, end float64, outPath, srt strin
 		"-t", fmt.Sprintf("%.3f", end-start),
 	}
 	dir := ""
-	if srt != "" {
+	if caps.ASS != "" || caps.SRT != "" {
 		// ffmpeg filter arguments need escaping for most paths, so the
 		// captions file gets a plain name in its own folder instead.
 		dir, err = os.MkdirTemp("", "trady-captions-")
@@ -105,10 +112,17 @@ func Cut(ctx context.Context, src string, start, end float64, outPath, srt strin
 			return err
 		}
 		defer os.RemoveAll(dir)
-		if err := os.WriteFile(filepath.Join(dir, "captions.srt"), []byte(srt), 0o600); err != nil {
-			return err
+		if caps.ASS != "" {
+			if err := os.WriteFile(filepath.Join(dir, "captions.ass"), []byte(caps.ASS), 0o600); err != nil {
+				return err
+			}
+			args = append(args, "-vf", "ass=captions.ass")
+		} else {
+			if err := os.WriteFile(filepath.Join(dir, "captions.srt"), []byte(caps.SRT), 0o600); err != nil {
+				return err
+			}
+			args = append(args, "-vf", "subtitles=captions.srt:force_style='FontSize=18,Outline=2,MarginV=40'")
 		}
-		args = append(args, "-vf", "subtitles=captions.srt:force_style='FontSize=18,Outline=2,MarginV=40'")
 	}
 	args = append(args,
 		"-c:v", "libx264", "-preset", "veryfast", "-crf", "23",

@@ -164,7 +164,10 @@ func projectRun(ctx context.Context, args []string) int {
 			c.Path = ""
 		} else {
 			pctx, cancel := media.WithTimeout(ctx)
-			err := media.Cut(pctx, src.Path, m.StartSec, m.EndSec, clipPath, media.SRT(segs, m.StartSec, m.EndSec))
+			err := media.Cut(pctx, src.Path, m.StartSec, m.EndSec, clipPath, media.Captions{
+				ASS: media.ASS(segs, m.StartSec, m.EndSec, src.Width, src.Height),
+				SRT: media.SRT(segs, m.StartSec, m.EndSec),
+			})
 			cancel()
 			if err != nil {
 				c.Status = "failed"
@@ -205,7 +208,7 @@ func projectRun(ctx context.Context, args []string) int {
 // whisper.cpp and a model are on this machine. The note says what happened.
 func captionsFor(ctx context.Context, src inventory.Source, job *inventory.Job) ([]inventory.Segment, string) {
 	if t, err := inventory.GetTranscript(ctx, src.ID); err == nil {
-		return t.Segments, fmt.Sprintf("burned in from the saved transcript (%d segments)", len(t.Segments))
+		return t.Segments, captionNote("from the saved transcript", t.Segments)
 	}
 	if media.WhisperPath() == "" || media.ModelPath() == "" {
 		return nil, "off: install whisper-cli and a model to burn in captions (see `trady doctor`)"
@@ -221,7 +224,7 @@ func captionsFor(ctx context.Context, src inventory.Source, job *inventory.Job) 
 	if _, err := inventory.SaveTranscript(ctx, src.ID, model, segs); err != nil {
 		return nil, "off: could not save the transcript: " + err.Error()
 	}
-	return segs, fmt.Sprintf("burned in from a new transcript (%d segments)", len(segs))
+	return segs, captionNote("from a new transcript", segs)
 }
 
 func failJob(ctx context.Context, job inventory.Job, p inventory.Project, err error) int {
@@ -268,4 +271,15 @@ func chooseMoments(ctx context.Context, p inventory.Project, src inventory.Sourc
 		moments = append(moments, saved)
 	}
 	return moments, selection, nil
+}
+
+// captionNote says how the captions are made: word by word when the
+// transcript has word times, else one line per segment (an older transcript).
+func captionNote(from string, segs []inventory.Segment) string {
+	for _, s := range segs {
+		if len(s.Words) > 0 {
+			return fmt.Sprintf("burned in word by word, %s (%d segments)", from, len(segs))
+		}
+	}
+	return fmt.Sprintf("burned in one line per segment, %s (%d segments); run `trady source transcribe` again for word by word", from, len(segs))
 }
