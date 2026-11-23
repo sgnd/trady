@@ -4,8 +4,9 @@ Thank you for helping. Please write issues, pull requests and docs in English.
 
 trady is open source under the [AGPL-3.0](LICENSE), and is also sold under a
 [commercial license](COMMERCIAL-LICENSE.md). Before your first pull request
-is merged, please sign the [Contributor License Agreement](CLA.md): put its
-sentence in the pull request description, and a check looks for it. You
+is merged, please sign the [Contributor License Agreement](CLA.md): type its
+sentence in the pull request description (every commit author signs), and a
+check looks for it. You
 keep the copyright of what you wrote.
 
 trady is a local-first command line for turning long recordings into short
@@ -40,3 +41,15 @@ make test     # unit tests
 
 A change people notice gets a line under `[Unreleased]` in
 [CHANGELOG.md](CHANGELOG.md), in the same pull request.
+
+## Merging outside pull requests
+
+For maintainers. Squash-merge a pull request from outside, and add one
+trailer per signer to the merge commit, so git keeps the CLA record:
+
+```
+CLA-Signed-By: <login> (#<number>, <YYYY-MM-DD>)
+```
+
+Never delete the `cla-signatures` branch: it holds the signatures given to
+the old bot before 2026-11-23.
