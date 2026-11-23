@@ -1,36 +1,35 @@
-# Asks every outside contributor to sign the Contributor License Agreement
-# (CLA.md) once, by writing a comment on their pull request. Signatures are
-# stored in signatures/cla.json on the cla-signatures branch.
+# Checks that a pull request from an outside contributor carries the
+# Contributor License Agreement sentence (CLA.md) in its description. The
+# pull request itself is the signed record.
+#
+# It runs on pull_request, so a fork gets a read-only token and no secrets,
+# and it checks out no code: it reads only the event's own description.
 name: CLA
 
 on:
-  issue_comment:
-    types: [created]
-  pull_request_target:
-    types: [opened, closed, synchronize]
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
 
 permissions: {}
 
 jobs:
   cla:
     name: CLA signed
-    permissions:
-      actions: write
-      contents: write
-      pull-requests: write
-      statuses: write
-    if: >-
-      github.event_name == 'pull_request_target' ||
-      (github.event.issue.pull_request &&
-       (github.event.comment.body == 'recheck' ||
-        github.event.comment.body == 'I have read the CLA Document and I hereby sign the CLA'))
     runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions: {}
     steps:
-      - uses: contributor-assistant/github-action@ca4a40a7d1004f18d9960b404b97e5f30a505a08 # v2.6.1
+      - name: Look for the CLA sentence
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          path-to-document: https://github.com/sgnd/trady/blob/main/CLA.md
-          path-to-signatures: signatures/cla.json
-          branch: cla-signatures
-          allowlist: sgnd,dependabot[bot]
+          AUTHOR: ${{ github.event.pull_request.user.login }}
+          BODY: ${{ github.event.pull_request.body }}
+        run: |
+          case "$AUTHOR" in
+            sgnd | 'dependabot[bot]') echo "no CLA needed for $AUTHOR"; exit 0 ;;
+          esac
+          if printf '%s' "$BODY" | grep -Fq 'I have read the CLA Document and I hereby sign the CLA'; then
+            echo "CLA signed by $AUTHOR in this pull request"
+          else
+            echo "::error::Add this line to the pull request description: I have read the CLA Document and I hereby sign the CLA"
+            exit 1
+          fi

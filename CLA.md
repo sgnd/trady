@@ -2,7 +2,7 @@
 
 Thank you for contributing to trady. This agreement explains what
 happens to your contribution. Please read it before you send a pull
-request. You sign it once, by writing a comment on your first pull request
+request. You sign it in the description of each pull request
 (see [How to sign](#how-to-sign)).
 
 ## In plain words
@@ -64,14 +64,14 @@ rights to your Contribution. You may use it in any other way you like.
 
 ## How to sign
 
-When you open your first pull request, a bot asks you to sign. Write this
-comment on the pull request:
+Put this line in the description of your pull request:
 
 ```
 I have read the CLA Document and I hereby sign the CLA
 ```
 
-The bot records your GitHub name and the date. You only sign once, and it
-covers all your future contributions to trady.
+A check on the pull request looks for it. The pull request, with your
+GitHub name and its date, is the record of your signature for that
+contribution.
 
 Signing for a company? Email **sugandaletters@gmail.com** first.
