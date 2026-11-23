@@ -45,11 +45,17 @@ func claScript(t *testing.T) string {
 // check runs the script with a fake gh that lists the given commit authors.
 func check(t *testing.T, opener, body string, authors ...string) bool {
 	t.Helper()
+	return checkC(t, opener, body, nil, authors...)
+}
+
+// checkC is check with PR comments that hold the sentence, by login.
+func checkC(t *testing.T, opener, body string, commenters []string, authors ...string) bool {
+	t.Helper()
 	if runtime.GOOS == "windows" {
 		t.Skip("shell script")
 	}
 	bin := t.TempDir()
-	fake := "#!/bin/sh\nprintf '%s\\n' " + quoteAll(authors) + "\n"
+	fake := "#!/bin/sh\ncase \"$*\" in\n*/comments*) printf '%s\\n' " + quoteAll(commenters) + " ;;\n*) printf '%s\\n' " + quoteAll(authors) + " ;;\nesac\n"
 	if err := os.WriteFile(filepath.Join(bin, "gh"), []byte(fake), 0o700); err != nil {
 		t.Fatal(err)
 	}
@@ -103,8 +109,8 @@ func TestEveryCommitAuthorSigns(t *testing.T) {
 	if check(t, "alice", body, "alice", "bob") {
 		t.Fatal("a commit by an unsigned second author passed")
 	}
-	if !check(t, "alice", body+"@bob "+sentence+"\n", "alice", "bob") {
-		t.Fatal("a second author who signed failed")
+	if !checkC(t, "alice", body, []string{"bob"}, "alice", "bob") {
+		t.Fatal("a second author who signed in their own comment failed")
 	}
 	if check(t, "alice", body, "alice", "unknown") {
 		t.Fatal("a commit with no GitHub account passed")
@@ -117,5 +123,19 @@ func TestEveryCommitAuthorSigns(t *testing.T) {
 	}
 	if !check(t, "sgnd", "", "sgnd") {
 		t.Fatal("the owner's own PR failed")
+	}
+}
+
+// Audit: a co-author signs in their own comment, not in a line the opener typed.
+func TestCoAuthorSignsInOwnComment(t *testing.T) {
+	body := sentence + "\n@bob " + sentence + "\n"
+	if check(t, "alice", body, "alice", "bob") {
+		t.Fatal("the opener signed for bob in the description")
+	}
+	if !checkC(t, "alice", sentence+"\n", []string{"bob"}, "alice", "bob") {
+		t.Fatal("bob's own comment did not count")
+	}
+	if checkC(t, "alice", sentence+"\n", []string{"alice"}, "alice", "bob") {
+		t.Fatal("a comment by the opener counted for bob")
 	}
 }

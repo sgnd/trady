@@ -1,13 +1,20 @@
 # Checks that everyone who wrote a commit in an outside pull request signed
-# the Contributor License Agreement (CLA.md) in its description:
-#   - the person who opened it, with the CLA sentence on a line of its own;
-#   - every other commit author, with "@login " and then the sentence.
+# the Contributor License Agreement (CLA.md), in words GitHub records as
+# theirs:
+#   - the person who opened it: the CLA sentence on a line of its own in the
+#     description;
+#   - every other commit author: a comment on the pull request, written by
+#     them, that holds the sentence. A maintainer then re-runs this check.
 # The maintainer squash-merges an outside pull request with a
 # "CLA-Signed-By:" trailer, so git keeps the record (see CONTRIBUTING.md).
 #
 # It runs on pull_request, so a fork gets a read-only token and no secrets.
 # It checks out no code: it reads the description from the event and the
-# commit authors from the API. The script is tested in internal/ci.
+# commit authors and comments from the API. pull-requests: read covers both
+# (GitHub lists "Issues" or "Pull requests" read for issue comments).
+# A commit maps to a login by its email, which GitHub does not verify; the
+# opener must still sign, so no pull request passes unsigned.
+# The script is tested in internal/ci.
 name: CLA
 
 on:
@@ -22,7 +29,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
-      pull-requests: read # list the pull request's commit authors
+      pull-requests: read # list the pull request's commit authors and comments
     steps:
       - name: Check the CLA
         env:
@@ -35,9 +42,13 @@ jobs:
           set -f # logins such as dependabot[bot] are not file patterns
           sentence='I have read the CLA Document and I hereby sign the CLA'
           exempt() { case "$1" in sgnd | 'dependabot[bot]') return 0 ;; esac; return 1; }
+          commenters=$(gh api "repos/$REPO/issues/$PR/comments" --paginate --jq '.[] | select(.body | contains("I have read the CLA Document and I hereby sign the CLA")) | .user.login')
           signed() {
-            if [ "$1" = "$AUTHOR" ] && printf '%s\n' "$BODY" | tr -d '\r' | grep -Fxq "$sentence"; then return 0; fi
-            printf '%s\n' "$BODY" | tr -d '\r' | grep -Fxq "@$1 $sentence"
+            if [ "$1" = "$AUTHOR" ]; then
+              printf '%s\n' "$BODY" | tr -d '\r' | grep -Fxq "$sentence"
+            else
+              printf '%s\n' "$commenters" | grep -Fxq "$1"
+            fi
           }
           authors=$(gh api "repos/$REPO/pulls/$PR/commits" --paginate --jq '.[] | (.author.login // "unknown")')
           missing=0
@@ -49,7 +60,11 @@ jobs:
             elif exempt "$who" || signed "$who"; then
               echo "signed or exempt: $who"
             else
-              echo "::error::$who has not signed: add the line '$sentence' (or '@$who $sentence' for a co-author) to the description"
+              if [ "$who" = "$AUTHOR" ]; then
+                echo "::error::$who has not signed: add the line '$sentence' to the description"
+              else
+                echo "::error::$who has not signed: $who writes a comment on this pull request with '$sentence', then a maintainer re-runs this check"
+              fi
               missing=1
             fi
           done

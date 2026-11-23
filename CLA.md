@@ -71,14 +71,12 @@ I have read the CLA Document and I hereby sign the CLA
 ```
 
 Type it yourself, on a line of its own. Did someone else write commits in
-your pull request? Each of them adds a line with their GitHub name first:
+your pull request? Each of them signs in their own words: they write a
+comment on the pull request that holds the same sentence. Nobody can sign
+for someone else.
 
-```
-@their-login I have read the CLA Document and I hereby sign the CLA
-```
-
-A check on the pull request looks for a line from everyone who wrote a
-commit. When the pull request is merged, the maintainer adds a
+A check on the pull request looks for your line and for a comment from every
+other commit author. When the pull request is merged, the maintainer adds a
 `CLA-Signed-By: <login> (#<number>, <date>)` line to the merge commit for
 each signer, so the record stays in git.
 

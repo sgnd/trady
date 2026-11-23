@@ -44,8 +44,14 @@ A change people notice gets a line under `[Unreleased]` in
 
 ## Merging outside pull requests
 
-For maintainers. Squash-merge a pull request from outside, and add one
-trailer per signer to the merge commit, so git keeps the CLA record:
+For maintainers. When a co-author signs by a comment, re-run the CLA check
+on the pull request: it runs on pull request events, not on comments.
+GitHub maps a commit to a login by its email, which it does not verify; the
+person who opened the pull request must still sign, so nothing unsigned is
+merged.
+
+Squash-merge a pull request from outside, and add one trailer per signer to
+the merge commit, so git keeps the CLA record:
 
 ```
 CLA-Signed-By: <login> (#<number>, <YYYY-MM-DD>)
